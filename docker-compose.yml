@@ -91,7 +91,7 @@ services:
     networks:
       - nilabiru-data-hub
 
-  tailscale:
+  nilabiru-tailscale:
     image: tailscale/tailscale
     container_name: nilabiru-tailscale
     restart: always
