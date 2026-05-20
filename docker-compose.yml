@@ -99,7 +99,7 @@ services:
       - TS_AUTHKEY=${TAILSCALE_AUTHKEY}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_USERSPACE=true
-      - TS_HOSTNAME=minipc-nilabiru
+      - TS_HOSTNAME=nilabiru-data-hub
     volumes:
       - tailscale-data:/var/lib/tailscale
     cap_add:
