@@ -1,4 +1,4 @@
-name: Update Deploy Continuos Integration
+name: Update Continuos Deployment
 
 on:
   push:
