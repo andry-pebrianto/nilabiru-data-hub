@@ -18,5 +18,4 @@ jobs:
           cd ~/nilabiru-data-hub
           git pull origin main
 
-          docker compose down --remove-orphans
-          docker compose up --build -d
+          docker compose up --build -d --remove-orphans
