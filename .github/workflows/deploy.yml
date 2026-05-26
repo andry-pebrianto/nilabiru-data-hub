@@ -1,4 +1,4 @@
-name: Update Continuos Deployment
+name: Run Github Runners CI/CD
 
 on:
   push:
@@ -13,9 +13,49 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Run Deploy Script
+      - name: Validate Docker Compose
         run: |
           cd ~/nilabiru-data-hub
           git pull origin main
 
-          docker compose up --build -d --remove-orphans
+          docker compose config --quiet
+
+      - name: Run Deploy Script
+        run: |
+          cd ~/nilabiru-data-hub
+
+          docker compose up -d --remove-orphans
+
+      - name: Health Check
+        run: |
+          echo "Waiting for containers to be healthy..."
+          sleep 15
+
+          SERVICES=(
+            nilabiru-redis
+            nilabiru-postgres
+            nilabiru-mysql
+            nilabiru-mongodb
+            nilabiru-rabbitmq
+            nilabiru-rustfs
+            nilabiru-n8n
+            nilabiru-portainer
+            nilabiru-tailscale
+          )
+
+          FAILED=()
+
+          for SERVICE in "${SERVICES[@]}"; do
+            STATUS=$(docker inspect --format='{{.State.Status}}' "$SERVICE" 2>/dev/null)
+            if [ "$STATUS" != "running" ]; then
+              FAILED+=("$SERVICE (status: ${STATUS:-not found})")
+            fi
+          done
+
+          if [ ${#FAILED[@]} -ne 0 ]; then
+            echo "The following containers are not running:"
+            for F in "${FAILED[@]}"; do echo "  - $F"; done
+            exit 1
+          fi
+
+          echo "All containers are running."

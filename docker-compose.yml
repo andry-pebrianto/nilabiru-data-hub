@@ -133,12 +133,44 @@ services:
           "CMD",
           "sh",
           "-c",
-          "curl -f http://localhost:9000/health && curl -f http://localhost:9001/health",
+          "curl -f http://localhost:9000/health && curl -f http://localhost:9001/rustfs/console/health",
         ]
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 40s
+
+  nilabiru-n8n:
+    image: n8nio/n8n:latest
+    container_name: nilabiru-n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=nilabiru-postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${N8N_DB_NAME}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=168
+    volumes:
+      - n8n-data:/home/node/.n8n
+    networks:
+      - nilabiru-data-hub
+    depends_on:
+      nilabiru-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5678/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
   nilabiru-portainer:
     image: portainer/portainer-ce:latest
@@ -175,6 +207,7 @@ volumes:
   mongodb-data:
   rabbitmq-data:
   rustfs-logs:
+  n8n-data:
   portainer-data:
   tailscale-data:
 
