@@ -28,8 +28,8 @@ jobs:
 
       - name: Health Check
         run: |
-          echo "Waiting for containers to be healthy..."
-          sleep 15
+          echo "Waiting for containers to start and become healthy..."
+          sleep 30
 
           SERVICES=(
             nilabiru-redis
@@ -43,19 +43,61 @@ jobs:
             nilabiru-tailscale
           )
 
-          FAILED=()
+          MAX_WAIT=180
+          INTERVAL=10
+          ELAPSED=0
 
+          echo "Polling container health (max ${MAX_WAIT}s)..."
+
+          while [ $ELAPSED -lt $MAX_WAIT ]; do
+            ALL_GOOD=true
+
+            for SERVICE in "${SERVICES[@]}"; do
+              STATUS=$(docker inspect --format='{{.State.Status}}' "$SERVICE" 2>/dev/null || echo "not found")
+              HEALTH=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$SERVICE" 2>/dev/null || echo "not found")
+
+              if [ "$STATUS" != "running" ]; then
+                ALL_GOOD=false
+                echo "  [$SERVICE] NOT RUNNING (status: $STATUS)"
+                continue
+              fi
+
+              if [ "$HEALTH" != "none" ] && [ "$HEALTH" != "healthy" ]; then
+                ALL_GOOD=false
+                echo "  [$SERVICE] NOT HEALTHY yet (health: $HEALTH)"
+                continue
+              fi
+
+              echo "  [$SERVICE] OK (status: $STATUS, health: $HEALTH)"
+            done
+
+            if [ "$ALL_GOOD" = true ]; then
+              echo ""
+              echo "All containers are running and healthy."
+              exit 0
+            fi
+
+            echo ""
+            echo "Not all containers are ready. Retrying in ${INTERVAL}s... (${ELAPSED}s elapsed)"
+            sleep $INTERVAL
+            ELAPSED=$((ELAPSED + INTERVAL))
+          done
+
+          echo ""
+          echo "Timeout reached. The following containers are not ready:"
+
+          FAILED=()
           for SERVICE in "${SERVICES[@]}"; do
-            STATUS=$(docker inspect --format='{{.State.Status}}' "$SERVICE" 2>/dev/null)
-            if [ "$STATUS" != "running" ]; then
-              FAILED+=("$SERVICE (status: ${STATUS:-not found})")
+            STATUS=$(docker inspect --format='{{.State.Status}}' "$SERVICE" 2>/dev/null || echo "not found")
+            HEALTH=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$SERVICE" 2>/dev/null || echo "not found")
+
+            if [ "$STATUS" != "running" ] || { [ "$HEALTH" != "none" ] && [ "$HEALTH" != "healthy" ]; }; then
+              FAILED+=("$SERVICE (status: $STATUS, health: $HEALTH)")
             fi
           done
 
-          if [ ${#FAILED[@]} -ne 0 ]; then
-            echo "The following containers are not running:"
-            for F in "${FAILED[@]}"; do echo "  - $F"; done
-            exit 1
-          fi
+          for F in "${FAILED[@]}"; do
+            echo "  - $F"
+          done
 
-          echo "All containers are running."
+          exit 1
