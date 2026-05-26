@@ -28,6 +28,7 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     networks:
       - nilabiru-data-hub
     healthcheck:
@@ -168,7 +169,15 @@ services:
       nilabiru-postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5678/healthz"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:5678/healthz",
+        ]
       interval: 15s
       timeout: 5s
       retries: 5
