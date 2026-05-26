@@ -36,6 +36,56 @@ services:
       timeout: 5s
       retries: 5
 
+  nilabiru-mysql:
+    image: mysql:8-debian
+    container_name: nilabiru-mysql
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - nilabiru-data-hub
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${MYSQL_ROOT_PASSWORD}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nilabiru-mongodb:
+    image: mongo:7
+    container_name: nilabiru-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - nilabiru-data-hub
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   nilabiru-rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: nilabiru-rabbitmq
@@ -57,26 +107,37 @@ services:
       timeout: 10s
       retries: 5
 
-  nilabiru-minio:
-    image: minio/minio:latest
-    container_name: nilabiru-minio
+  nilabiru-rustfs:
+    image: rustfs/rustfs:latest
+    container_name: nilabiru-rustfs
     restart: always
     ports:
       - "9000:9000"
       - "9001:9001"
     environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY}
+      - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY}
+      - RUSTFS_VOLUMES=/data
+      - RUSTFS_ADDRESS=0.0.0.0:9000
+      - RUSTFS_CONSOLE_ADDRESS=0.0.0.0:9001
+      - RUSTFS_CONSOLE_ENABLE=true
     volumes:
-      - /sata-storage/minio-data:/data
-    command: server /data --console-address ":9001"
+      - /sata-storage/rustfs-data:/data
+      - rustfs-logs:/app/logs
     networks:
       - nilabiru-data-hub
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test:
+        [
+          "CMD",
+          "sh",
+          "-c",
+          "curl -f http://localhost:9000/health && curl -f http://localhost:9001/health",
+        ]
       interval: 15s
       timeout: 5s
       retries: 5
+      start_period: 40s
 
   nilabiru-portainer:
     image: portainer/portainer-ce:latest
@@ -109,7 +170,10 @@ services:
 volumes:
   redis-data:
   postgres-data:
+  mysql-data:
+  mongodb-data:
   rabbitmq-data:
+  rustfs-logs:
   portainer-data:
   tailscale-data:
 

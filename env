@@ -1,19 +1,29 @@
 # Redis
-REDIS_PASSWORD=
+REDIS_PASSWORD=your_redis_password
 
 # PostgreSQL
-POSTGRES_USER=
-POSTGRES_PASSWORD=
-POSTGRES_DB=
+POSTGRES_USER=your_postgres_user
+POSTGRES_PASSWORD=your_postgres_password
+POSTGRES_DB=your_database_name
+
+# MySQL
+MYSQL_ROOT_PASSWORD=your_mysql_root_password
+MYSQL_USER=your_mysql_user
+MYSQL_PASSWORD=your_mysql_password
+MYSQL_DATABASE=your_mysql_database
+
+# MongoDB
+MONGO_ROOT_USERNAME=your_mongo_root_username
+MONGO_ROOT_PASSWORD=your_mongo_root_password
 
 # RabbitMQ
-RABBITMQ_USER=
-RABBITMQ_PASSWORD=
-RABBITMQ_VHOST=
+RABBITMQ_USER=your_rabbitmq_user
+RABBITMQ_PASSWORD=your_rabbitmq_password
+RABBITMQ_VHOST=/
 
-# MinIO
-MINIO_ROOT_USER=
-MINIO_ROOT_PASSWORD=
+# RustFS
+RUSTFS_ACCESS_KEY=your_rustfs_access_key
+RUSTFS_SECRET_KEY=your_rustfs_secret_key
 
 # Tailscale
-TAILSCALE_AUTHKEY=
+TAILSCALE_AUTHKEY=tskey-auth-xxxxx
