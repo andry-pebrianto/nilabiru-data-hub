@@ -111,6 +111,7 @@ services:
     image: rustfs/rustfs:latest
     container_name: nilabiru-rustfs
     restart: always
+    user: "0:0"
     ports:
       - "9000:9000"
       - "9001:9001"
