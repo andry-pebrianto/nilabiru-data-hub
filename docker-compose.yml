@@ -213,11 +213,8 @@ services:
       - TS_HOSTNAME=nilabiru-data-hub
     volumes:
       - tailscale-data:/var/lib/tailscale
-    devices:
-      - /dev/net/tun:/dev/net/tun
     cap_add:
       - NET_ADMIN
-      - SYS_MODULE
     network_mode: host
 
 volumes:
