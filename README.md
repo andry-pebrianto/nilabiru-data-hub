@@ -140,7 +140,7 @@ docker compose ps
 | n8n                 | `http://localhost:5678`  |
 | Portainer           | `https://localhost:9443` |
 
-When Tailscale is active, all services are also reachable via the Tailscale network at the hostname `nilabiru-data-hub`. 
+When Tailscale is active, all services are also reachable via the Tailscale network at the hostname `nilabiru-data-hub`.
 
 ---
 
