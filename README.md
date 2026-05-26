@@ -1,4 +1,4 @@
-# nilabiru-data-hub
+# Nilabiru Data Hub
 
 A self-hosted data infrastructure stack for the Nilabiru ecosystem, bundling essential data services into a single Docker Compose setup with automated CI/CD deployment and secure remote access via Tailscale.
 
@@ -6,7 +6,7 @@ A self-hosted data infrastructure stack for the Nilabiru ecosystem, bundling ess
 
 ## Overview
 
-**nilabiru-data-hub** provisions and manages a cohesive set of data infrastructure services — cache, relational databases, document store, message broker, object storage, workflow automation, and container management — all running in isolated Docker containers on a shared internal network. Remote access is secured through a Tailscale VPN tunnel, and deployments are fully automated via GitHub Actions on every push to `main`.
+**Nilabiru Data Hub** provisions and manages a cohesive set of data infrastructure services — cache, relational databases, document store, message broker, object storage, workflow automation, and container management — all running in isolated Docker containers on a shared internal network. Remote access is secured through a Tailscale VPN tunnel, and deployments are fully automated via GitHub Actions on every push to `main`.
 
 ---
 
@@ -42,7 +42,7 @@ All services (except Tailscale, which uses `host` network mode) are connected th
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/<your-username>/nilabiru-data-hub.git
+git clone https://github.com/andry-pebrianto/nilabiru-data-hub.git
 cd nilabiru-data-hub
 ```
 
@@ -102,20 +102,13 @@ TAILSCALE_AUTHKEY=tskey-auth-xxxxx
 mkdir -p /sata-storage/rustfs-data
 ```
 
-### 4. Create n8n database in PostgreSQL
-
-n8n uses PostgreSQL as its database. Create the database before starting the stack:
-
-```bash
-docker compose up -d nilabiru-postgres
-docker exec -it nilabiru-postgres psql -U $POSTGRES_USER -c "CREATE DATABASE n8n;"
-```
-
-### 5. Start the stack
+### 4. Start the stack
 
 ```bash
 docker compose up -d
 ```
+
+The n8n database is created automatically on first startup via `init-db.sh`, which runs as part of the PostgreSQL initialization process.
 
 To verify all services are healthy:
 
@@ -167,11 +160,11 @@ Persistent volumes are defined for each stateful service:
 
 This project uses GitHub Actions for continuous deployment. On every push to the `main` branch, the workflow:
 
-1. Checks out the latest code on the self-hosted runner.
-2. Pulls the latest changes from `origin main`.
+1. Checks out the latest code and pulls from `origin main` on the self-hosted runner.
+2. Validates the Compose configuration with `docker compose config`.
 3. Restarts all services with `docker compose up -d --remove-orphans`.
-4. Runs a health check verifying all containers are in `running` state.
-5. If any container is not running, the workflow fails and GitHub sends an email notification automatically.
+4. Polls container status and health checks every 10 seconds, up to a maximum of 180 seconds.
+5. Exits successfully once all containers are `running` and `healthy`; fails with a list of unhealthy containers if the timeout is reached.
 
 The workflow file is located at `.github/workflows/deploy.yml`. A self-hosted GitHub Actions runner must be configured on the target server for this to work.
 
@@ -181,17 +174,17 @@ The workflow file is located at `.github/workflows/deploy.yml`. A self-hosted Gi
 
 All critical services include Docker health checks to ensure availability:
 
-- **Redis** — `redis-cli ping`
-- **PostgreSQL** — `pg_isready`
-- **MySQL** — `mysqladmin ping`
-- **MongoDB** — `mongosh db.adminCommand('ping')`
+- **Redis** — `redis-cli -a $REDIS_PASSWORD ping`
+- **PostgreSQL** — `pg_isready -U $POSTGRES_USER -d $POSTGRES_DB`
+- **MySQL** — `mysqladmin ping -h localhost -u root -p$MYSQL_ROOT_PASSWORD`
+- **MongoDB** — `mongosh --eval "db.adminCommand('ping')"`
 - **RabbitMQ** — `rabbitmq-diagnostics ping`
-- **RustFS** — `curl http://localhost:9000/health` & `curl http://localhost:9001/rustfs/console/health`
-- **n8n** — `wget http://localhost:5678/healthz`
+- **RustFS** — `curl -f http://localhost:9000/health` and `curl -f http://localhost:9001/rustfs/console/health`
+- **n8n** — `wget --spider http://localhost:5678/healthz`
 
 ---
 
 ## License
 
 This project is licensed under the [MIT License](LICENSE).  
-Copyright © 2022 Andry Pebrianto
+Copyright © 2026 Andry Pebrianto
