@@ -1,25 +1,217 @@
 services:
-  nilabiru-portainer-agent:
-    image: portainer/agent:latest
-    container_name: nilabiru-portainer-agent
+  nilabiru-redis:
+    image: redis:7-alpine
+    container_name: nilabiru-redis
     restart: always
     ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    networks:
+      - nilabiru-data-hub
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  nilabiru-postgres:
+    image: postgres:16-alpine
+    container_name: nilabiru-postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - N8N_DB_NAME=${N8N_DB_NAME}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    networks:
+      - nilabiru-data-hub
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  nilabiru-mysql:
+    image: mysql:8-debian
+    container_name: nilabiru-mysql
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - nilabiru-data-hub
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${MYSQL_ROOT_PASSWORD}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  nilabiru-mongodb:
+    image: mongo:7
+    container_name: nilabiru-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - nilabiru-data-hub
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  nilabiru-rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: nilabiru-rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
+      - RABBITMQ_DEFAULT_VHOST=${RABBITMQ_VHOST:-/}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - nilabiru-data-hub
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  nilabiru-rustfs:
+    image: rustfs/rustfs:latest
+    container_name: nilabiru-rustfs
+    restart: always
+    user: "0:0"
+    ports:
+      - "9000:9000"
       - "9001:9001"
+    environment:
+      - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY}
+      - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY}
+      - RUSTFS_VOLUMES=/data
+      - RUSTFS_ADDRESS=0.0.0.0:9000
+      - RUSTFS_CONSOLE_ADDRESS=0.0.0.0:9001
+      - RUSTFS_CONSOLE_ENABLE=true
+    volumes:
+      - /sata-storage/rustfs-data:/data
+      - rustfs-logs:/app/logs
+    networks:
+      - nilabiru-data-hub
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "sh",
+          "-c",
+          "curl -f http://localhost:9000/health && curl -f http://localhost:9001/rustfs/console/health",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  nilabiru-n8n:
+    image: n8nio/n8n:latest
+    container_name: nilabiru-n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=nilabiru-postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${N8N_DB_NAME}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=168
+      - N8N_SECURE_COOKIE=false
+    volumes:
+      - n8n-data:/home/node/.n8n
+    networks:
+      - nilabiru-data-hub
+    depends_on:
+      nilabiru-postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:5678/healthz",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  nilabiru-portainer:
+    image: portainer/portainer-ce:latest
+    container_name: nilabiru-portainer
+    restart: always
+    ports:
+      - "9443:9443"
+      - "8000:8000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /var/lib/docker/volumes:/var/lib/docker/volumes
+      - portainer-data:/data
     networks:
-      - nilabiru-data-hub-agent
+      - nilabiru-data-hub
 
   nilabiru-tailscale:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale
     container_name: nilabiru-tailscale
     restart: always
     environment:
       - TS_AUTHKEY=${TAILSCALE_AUTHKEY}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_USERSPACE=true
-      - TS_HOSTNAME=${TS_HOSTNAME}
+      - TS_HOSTNAME=nilabiru-data-hub
     volumes:
       - tailscale-data:/var/lib/tailscale
     cap_add:
@@ -27,8 +219,16 @@ services:
     network_mode: host
 
 volumes:
+  redis-data:
+  postgres-data:
+  mysql-data:
+  mongodb-data:
+  rabbitmq-data:
+  rustfs-logs:
+  n8n-data:
+  portainer-data:
   tailscale-data:
 
 networks:
-  nilabiru-data-hub-agent:
+  nilabiru-data-hub:
     driver: bridge
