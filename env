@@ -1,35 +1,3 @@
-# Redis
-REDIS_PASSWORD=your_redis_password
-
-# PostgreSQL
-POSTGRES_USER=your_postgres_user
-POSTGRES_PASSWORD=your_postgres_password
-POSTGRES_DB=your_database_name
-
-# MySQL
-MYSQL_ROOT_PASSWORD=your_mysql_root_password
-MYSQL_USER=your_mysql_user
-MYSQL_PASSWORD=your_mysql_password
-MYSQL_DATABASE=your_mysql_database
-
-# MongoDB
-MONGO_ROOT_USERNAME=your_mongo_root_username
-MONGO_ROOT_PASSWORD=your_mongo_root_password
-
-# RabbitMQ
-RABBITMQ_USER=your_rabbitmq_user
-RABBITMQ_PASSWORD=your_rabbitmq_password
-RABBITMQ_VHOST=/
-
-# RustFS
-RUSTFS_ACCESS_KEY=your_rustfs_access_key
-RUSTFS_SECRET_KEY=your_rustfs_secret_key
-
-# n8n
-N8N_ENCRYPTION_KEY=your_random_32_char_string
-N8N_DB_NAME=n8n
-N8N_HOST=localhost
-N8N_PROTOCOL=http
-
 # Tailscale
 TAILSCALE_AUTHKEY=tskey-auth-xxxxx
+TS_HOSTNAME=your_tailscale_hostname

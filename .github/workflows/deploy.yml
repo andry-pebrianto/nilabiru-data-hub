@@ -15,14 +15,14 @@ jobs:
 
       - name: Validate Docker Compose
         run: |
-          cd ~/nilabiru-data-hub
+          cd ~/nilabiru-data-hub-agent
           git pull origin main
 
           docker compose config --quiet
 
       - name: Run Deploy Script
         run: |
-          cd ~/nilabiru-data-hub
+          cd ~/nilabiru-data-hub-agent
 
           docker compose up -d --remove-orphans
 
@@ -32,14 +32,7 @@ jobs:
           sleep 30
 
           SERVICES=(
-            nilabiru-redis
-            nilabiru-postgres
-            nilabiru-mysql
-            nilabiru-mongodb
-            nilabiru-rabbitmq
-            nilabiru-rustfs
-            nilabiru-n8n
-            nilabiru-portainer
+            nilabiru-portainer-agent
             nilabiru-tailscale
           )
 
