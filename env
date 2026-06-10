@@ -30,6 +30,3 @@ N8N_ENCRYPTION_KEY=your_random_32_char_string
 N8N_DB_NAME=n8n
 N8N_HOST=localhost
 N8N_PROTOCOL=http
-
-# Tailscale
-TAILSCALE_AUTHKEY=tskey-auth-xxxxx

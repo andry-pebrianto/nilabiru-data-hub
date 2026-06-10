@@ -40,7 +40,6 @@ jobs:
             nilabiru-rustfs
             nilabiru-n8n
             nilabiru-portainer
-            nilabiru-tailscale
           )
 
           MAX_WAIT=180

@@ -203,22 +203,6 @@ services:
     networks:
       - nilabiru-data-hub
 
-  nilabiru-tailscale:
-    image: tailscale/tailscale
-    container_name: nilabiru-tailscale
-    restart: always
-    environment:
-      - TS_AUTHKEY=${TAILSCALE_AUTHKEY}
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_HOSTNAME=nilabiru-data-hub
-    volumes:
-      - tailscale-data:/var/lib/tailscale
-      - /dev/net/tun:/dev/net/tun
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    network_mode: host
-
 volumes:
   redis-data:
   postgres-data:
@@ -228,7 +212,6 @@ volumes:
   rustfs-logs:
   n8n-data:
   portainer-data:
-  tailscale-data:
 
 networks:
   nilabiru-data-hub:
