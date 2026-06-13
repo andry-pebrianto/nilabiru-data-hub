@@ -7,7 +7,7 @@ services:
       - "${TAILSCALE_IP}:6379:6379"
     volumes:
       - redis-data:/data
-    command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 400mb --maxmemory-policy allkeys-lru
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     networks:
       - nilabiru-data-hub
     healthcheck:
@@ -16,16 +16,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-    deploy:
-      resources:
-        limits:
-          memory: 512m
-          cpus: "0.5"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 
   nilabiru-postgres:
     image: postgres:17-alpine
@@ -49,16 +39,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
-    deploy:
-      resources:
-        limits:
-          memory: 1g
-          cpus: "1.0"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 
   nilabiru-mysql:
     image: mysql:8.4.9
@@ -92,16 +72,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
-    deploy:
-      resources:
-        limits:
-          memory: 1g
-          cpus: "1.0"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 
   nilabiru-mongodb:
     image: mongo:8.0
@@ -117,34 +87,11 @@ services:
     networks:
       - nilabiru-data-hub
     healthcheck:
-      test:
-        [
-          "CMD",
-          "mongosh",
-          "--username",
-          "${MONGO_ROOT_USERNAME}",
-          "--password",
-          "${MONGO_ROOT_PASSWORD}",
-          "--authenticationDatabase",
-          "admin",
-          "--eval",
-          "db.adminCommand('ping')",
-          "--quiet",
-        ]
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s
-    deploy:
-      resources:
-        limits:
-          memory: 1g
-          cpus: "1.0"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 
   nilabiru-rabbitmq:
     image: rabbitmq:4.1-management-alpine
@@ -167,22 +114,12 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
-    deploy:
-      resources:
-        limits:
-          memory: 512m
-          cpus: "0.5"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 
   nilabiru-rustfs:
     image: rustfs/rustfs:latest
     container_name: nilabiru-rustfs
     restart: unless-stopped
-    user: "999:999"
+    user: "0:0"
     ports:
       - "${TAILSCALE_IP}:9000:9000"
       - "${TAILSCALE_IP}:9001:9001"
@@ -210,16 +147,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 40s
-    deploy:
-      resources:
-        limits:
-          memory: 2g
-          cpus: "2.0"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "5"
 
   nilabiru-nextcloud:
     image: nextcloud:29-apache
@@ -253,16 +180,6 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
-    deploy:
-      resources:
-        limits:
-          memory: 1g
-          cpus: "1.0"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 
   nilabiru-portainer:
     image: portainer/portainer-ce:2.42.0
@@ -276,31 +193,6 @@ services:
       - portainer-data:/data
     networks:
       - nilabiru-data-hub
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "--no-check-certificate",
-          "https://localhost:9443/api/system/status",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          memory: 256m
-          cpus: "0.25"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 
 volumes:
   redis-data:

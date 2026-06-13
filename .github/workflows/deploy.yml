@@ -39,7 +39,6 @@ jobs:
             nilabiru-rabbitmq
             nilabiru-rustfs
             nilabiru-nextcloud
-            nilabiru-portainer
           )
 
           MAX_WAIT=300
