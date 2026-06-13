@@ -87,7 +87,7 @@ services:
     networks:
       - nilabiru-data-hub
     healthcheck:
-      test: mongosh --username "$$MONGO_ROOT_USERNAME" --password "$$MONGO_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand('ping')" --quiet
+      test: mongosh --username $$MONGO_ROOT_USERNAME --password $$MONGO_ROOT_PASSWORD --authenticationDatabase admin --eval "db.adminCommand('ping')" --quiet
       interval: 10s
       timeout: 5s
       retries: 5
