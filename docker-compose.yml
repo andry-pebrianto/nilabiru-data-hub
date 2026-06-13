@@ -103,6 +103,7 @@ services:
     ports:
       - "${TAILSCALE_IP}:8080:80"
     environment:
+      - NC_setup_create_db_user=false
       - POSTGRES_HOST=nilabiru-postgres
       - POSTGRES_DB=${NEXTCLOUD_DB_NAME}
       - POSTGRES_USER=${POSTGRES_USER}
