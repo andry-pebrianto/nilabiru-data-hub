@@ -1,3 +1,6 @@
+# Tailscale
+TAILSCALE_IP=100.x.x.x
+
 # Redis
 REDIS_PASSWORD=your_redis_password
 
@@ -25,8 +28,7 @@ RABBITMQ_VHOST=/
 RUSTFS_ACCESS_KEY=your_rustfs_access_key
 RUSTFS_SECRET_KEY=your_rustfs_secret_key
 
-# n8n
-N8N_ENCRYPTION_KEY=your_random_32_char_string
-N8N_DB_NAME=n8n
-N8N_HOST=localhost
-N8N_PROTOCOL=http
+# Nextcloud
+NEXTCLOUD_DB_NAME=your_nextcloud_db_name
+NEXTCLOUD_ADMIN_USER=your_nextcloud_admin_user
+NEXTCLOUD_ADMIN_PASSWORD=your_nextcloud_admin_password

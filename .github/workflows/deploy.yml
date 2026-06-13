@@ -38,11 +38,11 @@ jobs:
             nilabiru-mongodb
             nilabiru-rabbitmq
             nilabiru-rustfs
-            nilabiru-n8n
+            nilabiru-nextcloud
             nilabiru-portainer
           )
 
-          MAX_WAIT=180
+          MAX_WAIT=300
           INTERVAL=10
           ELAPSED=0
 

@@ -1,6 +1,6 @@
 set -e
 
-DB_NAME="${N8N_DB_NAME:-n8n}"
+DB_NAME="${NEXTCLOUD_DB_NAME:-nextcloud}"
 
 echo "Checking if database '${DB_NAME}' exists..."
 
