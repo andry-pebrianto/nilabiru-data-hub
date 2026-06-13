@@ -8,112 +8,59 @@ on:
 jobs:
   deploy:
     runs-on: self-hosted
-
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Create .env
+      - name: Create .env safely
+        env:
+          TAILSCALE_IP: ${{ secrets.TAILSCALE_IP }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+          MYSQL_USER: ${{ secrets.MYSQL_USER }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
+          MONGO_ROOT_USERNAME: ${{ secrets.MONGO_ROOT_USERNAME }}
+          MONGO_ROOT_PASSWORD: ${{ secrets.MONGO_ROOT_PASSWORD }}
+          RABBITMQ_USER: ${{ secrets.RABBITMQ_USER }}
+          RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+          RABBITMQ_VHOST: ${{ secrets.RABBITMQ_VHOST }}
+          RUSTFS_ACCESS_KEY: ${{ secrets.RUSTFS_ACCESS_KEY }}
+          RUSTFS_SECRET_KEY: ${{ secrets.RUSTFS_SECRET_KEY }}
+          NEXTCLOUD_DB_NAME: ${{ secrets.NEXTCLOUD_DB_NAME }}
+          NEXTCLOUD_ADMIN_USER: ${{ secrets.NEXTCLOUD_ADMIN_USER }}
+          NEXTCLOUD_ADMIN_PASSWORD: ${{ secrets.NEXTCLOUD_ADMIN_PASSWORD }}
         run: |
-          cat > .env << EOF
-          TAILSCALE_IP=${{ secrets.TAILSCALE_IP }}
-          REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
-          POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DB=${{ secrets.POSTGRES_DB }}
-          MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
-          MYSQL_USER=${{ secrets.MYSQL_USER }}
-          MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
-          MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}
-          MONGO_ROOT_USERNAME=${{ secrets.MONGO_ROOT_USERNAME }}
-          MONGO_ROOT_PASSWORD=${{ secrets.MONGO_ROOT_PASSWORD }}
-          RABBITMQ_USER=${{ secrets.RABBITMQ_USER }}
-          RABBITMQ_PASSWORD=${{ secrets.RABBITMQ_PASSWORD }}
-          RABBITMQ_VHOST=${{ secrets.RABBITMQ_VHOST }}
-          RUSTFS_ACCESS_KEY=${{ secrets.RUSTFS_ACCESS_KEY }}
-          RUSTFS_SECRET_KEY=${{ secrets.RUSTFS_SECRET_KEY }}
-          NEXTCLOUD_DB_NAME=${{ secrets.NEXTCLOUD_DB_NAME }}
-          NEXTCLOUD_ADMIN_USER=${{ secrets.NEXTCLOUD_ADMIN_USER }}
-          NEXTCLOUD_ADMIN_PASSWORD=${{ secrets.NEXTCLOUD_ADMIN_PASSWORD }}
+          cat > .env << 'EOF'
+          TAILSCALE_IP=$TAILSCALE_IP
+          REDIS_PASSWORD=$REDIS_PASSWORD
+          POSTGRES_USER=$POSTGRES_USER
+          POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+          POSTGRES_DB=$POSTGRES_DB
+          MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD
+          MYSQL_USER=$MYSQL_USER
+          MYSQL_PASSWORD=$MYSQL_PASSWORD
+          MYSQL_DATABASE=$MYSQL_DATABASE
+          MONGO_ROOT_USERNAME=$MONGO_ROOT_USERNAME
+          MONGO_ROOT_PASSWORD=$MONGO_ROOT_PASSWORD
+          RABBITMQ_USER=$RABBITMQ_USER
+          RABBITMQ_PASSWORD=$RABBITMQ_PASSWORD
+          RABBITMQ_VHOST=$RABBITMQ_VHOST
+          RUSTFS_ACCESS_KEY=$RUSTFS_ACCESS_KEY
+          RUSTFS_SECRET_KEY=$RUSTFS_SECRET_KEY
+          NEXTCLOUD_DB_NAME=$NEXTCLOUD_DB_NAME
+          NEXTCLOUD_ADMIN_USER=$NEXTCLOUD_ADMIN_USER
+          NEXTCLOUD_ADMIN_PASSWORD=$NEXTCLOUD_ADMIN_PASSWORD
           EOF
+
+      - name: Ensure Init Script is Executable
+        run: chmod +x init-db.sh
 
       - name: Validate Docker Compose
         run: docker compose config --quiet
 
       - name: Run Deploy Script
         run: docker compose up -d --remove-orphans
-
-      - name: Health Check
-        run: |
-          echo "Waiting for containers to start and become healthy..."
-          sleep 30
-
-          SERVICES=(
-            nilabiru-redis
-            nilabiru-postgres
-            nilabiru-mysql
-            nilabiru-mongodb
-            nilabiru-rabbitmq
-            nilabiru-rustfs
-            nilabiru-nextcloud
-            nilabiru-portainer
-          )
-
-          MAX_WAIT=300
-          INTERVAL=10
-          ELAPSED=0
-
-          echo "Polling container health (max ${MAX_WAIT}s)..."
-
-          while [ $ELAPSED -lt $MAX_WAIT ]; do
-            ALL_GOOD=true
-
-            for SERVICE in "${SERVICES[@]}"; do
-              STATUS=$(docker inspect --format='{{.State.Status}}' "$SERVICE" 2>/dev/null || echo "not found")
-              HEALTH=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$SERVICE" 2>/dev/null || echo "not found")
-
-              if [ "$STATUS" != "running" ]; then
-                ALL_GOOD=false
-                echo "  [$SERVICE] NOT RUNNING (status: $STATUS)"
-                continue
-              fi
-
-              if [ "$HEALTH" != "none" ] && [ "$HEALTH" != "healthy" ]; then
-                ALL_GOOD=false
-                echo "  [$SERVICE] NOT HEALTHY yet (health: $HEALTH)"
-                continue
-              fi
-
-              echo "  [$SERVICE] OK (status: $STATUS, health: $HEALTH)"
-            done
-
-            if [ "$ALL_GOOD" = true ]; then
-              echo ""
-              echo "All containers are running and healthy."
-              exit 0
-            fi
-
-            echo ""
-            echo "Not all containers are ready. Retrying in ${INTERVAL}s... (${ELAPSED}s elapsed)"
-            sleep $INTERVAL
-            ELAPSED=$((ELAPSED + INTERVAL))
-          done
-
-          echo ""
-          echo "Timeout reached. The following containers are not ready:"
-
-          FAILED=()
-          for SERVICE in "${SERVICES[@]}"; do
-            STATUS=$(docker inspect --format='{{.State.Status}}' "$SERVICE" 2>/dev/null || echo "not found")
-            HEALTH=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$SERVICE" 2>/dev/null || echo "not found")
-
-            if [ "$STATUS" != "running" ] || { [ "$HEALTH" != "none" ] && [ "$HEALTH" != "healthy" ]; }; then
-              FAILED+=("$SERVICE (status: $STATUS, health: $HEALTH)")
-            fi
-          done
-
-          for F in "${FAILED[@]}"; do
-            echo "  - $F"
-          done
-
-          exit 1
