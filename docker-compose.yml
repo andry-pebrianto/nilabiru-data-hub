@@ -30,7 +30,7 @@ services:
       - NEXTCLOUD_DB_NAME=${NEXTCLOUD_DB_NAME}
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     networks:
       - nilabiru-data-hub
     healthcheck:
@@ -87,7 +87,16 @@ services:
     networks:
       - nilabiru-data-hub
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--username", "${MONGO_ROOT_USERNAME}",
+          "--password", "${MONGO_ROOT_PASSWORD}",
+          "--authenticationDatabase", "admin",
+          "--eval", "db.adminCommand('ping')",
+          "--quiet",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -189,7 +198,7 @@ services:
       - "${TAILSCALE_IP}:9443:9443"
       - "${TAILSCALE_IP}:8000:8000"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/run/docker.sock:/var/run/docker.sock
       - portainer-data:/data
     networks:
       - nilabiru-data-hub
