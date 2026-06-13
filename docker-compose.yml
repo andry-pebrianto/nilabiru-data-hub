@@ -89,13 +89,8 @@ services:
     healthcheck:
       test:
         [
-          "CMD",
-          "mongosh",
-          "--username", "${MONGO_ROOT_USERNAME}",
-          "--password", "${MONGO_ROOT_PASSWORD}",
-          "--authenticationDatabase", "admin",
-          "--eval", "db.adminCommand('ping')",
-          "--quiet",
+          "CMD-SHELL",
+          'mongosh --username "$MONGO_ROOT_USERNAME" --password "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand(''ping'')" --quiet',
         ]
       interval: 10s
       timeout: 5s
