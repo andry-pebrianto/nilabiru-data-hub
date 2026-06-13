@@ -35,6 +35,7 @@ jobs:
             echo "NEXTCLOUD_DB_NAME=${{ secrets.NEXTCLOUD_DB_NAME }}"
             echo "NEXTCLOUD_ADMIN_USER=${{ secrets.NEXTCLOUD_ADMIN_USER }}"
             echo "NEXTCLOUD_ADMIN_PASSWORD=${{ secrets.NEXTCLOUD_ADMIN_PASSWORD }}"
+            echo "NEXTCLOUD_TRUSTED_DOMAINS=${{ secrets.NEXTCLOUD_TRUSTED_DOMAINS }}"
           } > .env
 
       - name: Ensure Init Script is Executable
