@@ -90,6 +90,7 @@ RUSTFS_SECRET_KEY=your_rustfs_secret_key
 NEXTCLOUD_DB_NAME=nextcloud
 NEXTCLOUD_ADMIN_USER=your_nextcloud_admin_username
 NEXTCLOUD_ADMIN_PASSWORD=your_nextcloud_admin_password
+NEXTCLOUD_TRUSTED_DOMAINS=your_nextcloud_trusted_domain
 ```
 
 > **Note:** Never commit `.env` to version control. It is already listed in `.gitignore`.
