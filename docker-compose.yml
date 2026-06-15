@@ -1,7 +1,7 @@
 services:
   nilabiru-nginx-proxy-manager:
     image: "jc21/nginx-proxy-manager:2.15.1"
-    container_name: nilabiru-proxy-manager
+    container_name: nilabiru-nginx-proxy-manager
     restart: unless-stopped
     ports:
       - "80:80"
