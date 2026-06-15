@@ -16,7 +16,6 @@ A self-hosted data infrastructure stack for the Nilabiru ecosystem, bundling ess
 | -------------- | -------------------------------- | --------------- | -------------------------------------------------------------------------------------------- |
 | **Redis**      | `redis:8.8-alpine`               | `6379`          | In-memory cache and key-value store with password protection and memory limits               |
 | **PostgreSQL** | `postgres:17-alpine`             | `5432`          | Relational database with configurable user, password, and database name                      |
-| **MySQL**      | `mysql:8.4.9`                    | `3306`          | Relational database with root and non-root user support                                      |
 | **MongoDB**    | `mongo:8.0`                      | `27017`         | Document-oriented NoSQL database with root authentication                                    |
 | **RabbitMQ**   | `rabbitmq:4.1-management-alpine` | `5672`, `15672` | Message broker with management UI available at port `15672`                                  |
 | **RustFS**     | `rustfs/rustfs:latest`           | `9000`, `9001`  | High-performance S3-compatible object storage (Apache 2.0); console available at port `9001` |
@@ -66,12 +65,6 @@ REDIS_PASSWORD=your_redis_password
 POSTGRES_USER=your_postgres_user
 POSTGRES_PASSWORD=your_postgres_password
 POSTGRES_DB=your_database_name
-
-# MySQL
-MYSQL_ROOT_PASSWORD=your_mysql_root_password
-MYSQL_USER=your_mysql_user
-MYSQL_PASSWORD=your_mysql_password
-MYSQL_DATABASE=your_mysql_database
 
 # MongoDB
 MONGO_ROOT_USERNAME=your_mongo_root_username
@@ -126,7 +119,6 @@ All services are accessible only via the Tailscale IP of the server.
 | ------------------- | ----------------------------- |
 | Redis               | `<TAILSCALE_IP>:6379`         |
 | PostgreSQL          | `<TAILSCALE_IP>:5432`         |
-| MySQL               | `<TAILSCALE_IP>:3306`         |
 | MongoDB             | `<TAILSCALE_IP>:27017`        |
 | RabbitMQ AMQP       | `<TAILSCALE_IP>:5672`         |
 | RabbitMQ Management | `http://<TAILSCALE_IP>:15672` |
@@ -145,7 +137,6 @@ Persistent volumes are defined for each stateful service:
 | ------------------------------- | ----------------------------------- |
 | `redis-data`                    | Redis                               |
 | `postgres-data`                 | PostgreSQL                          |
-| `mysql-data`                    | MySQL                               |
 | `mongodb-data`                  | MongoDB                             |
 | `rabbitmq-data`                 | RabbitMQ                            |
 | `/sata-storage/rustfs-data`     | RustFS (host bind mount — data)     |
@@ -167,21 +158,6 @@ This project uses GitHub Actions for continuous deployment. On every push to the
 5. Exits successfully once all containers are `running` and `healthy`; fails with a list of unhealthy containers if the timeout is reached.
 
 The workflow file is located at `.github/workflows/deploy.yml`. A self-hosted GitHub Actions runner must be configured on the target server for this to work.
-
----
-
-## Health Checks
-
-All critical services include Docker health checks to ensure availability:
-
-- **Redis** — `redis-cli -a $REDIS_PASSWORD ping`
-- **PostgreSQL** — `pg_isready -U $POSTGRES_USER -d $POSTGRES_DB`
-- **MySQL** — `mysqladmin ping -h localhost -u root -p$MYSQL_ROOT_PASSWORD`
-- **MongoDB** — `mongosh --eval "db.adminCommand('ping')"`
-- **RabbitMQ** — `rabbitmq-diagnostics ping`
-- **RustFS** — `curl -f http://localhost:9000/health` and `curl -f http://localhost:9001/rustfs/console/health`
-- **Nextcloud** — `curl -f http://localhost:80/status.php`
-- **Portainer** — `wget --spider https://localhost:9443/api/system/status`
 
 ---
 

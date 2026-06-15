@@ -1,4 +1,18 @@
 services:
+  nilabiru-proxy-manager:
+    image: "jc21/nginx-proxy-manager:2.15.1"
+    container_name: nilabiru-proxy-manager
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "81:81"
+    volumes:
+      - ./proxy-manager/data:/data
+      - ./proxy-manager/letsencrypt:/etc/letsencrypt
+    networks:
+      - nilabiru-data-hub
+
   nilabiru-redis:
     image: redis:8.8-alpine
     container_name: nilabiru-redis
@@ -25,23 +39,6 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
-    networks:
-      - nilabiru-data-hub
-
-  nilabiru-mysql:
-    image: mysql:8.4.9
-    container_name: nilabiru-mysql
-    restart: unless-stopped
-    ports:
-      - "${TAILSCALE_IP}:3306:3306"
-    environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
-    command: --mysql-native-password=ON
-    volumes:
-      - mysql-data:/var/lib/mysql
     networks:
       - nilabiru-data-hub
 
@@ -113,6 +110,7 @@ services:
       - NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS}
       - REDIS_HOST=nilabiru-redis
       - REDIS_HOST_PASSWORD=${REDIS_PASSWORD}
+      - OVERWRITEPROTOCOL=https
     volumes:
       - nextcloud-data:/var/www/html
       - /sata-storage/nextcloud-files:/var/www/html/data
@@ -140,7 +138,6 @@ services:
 volumes:
   redis-data:
   postgres-data:
-  mysql-data:
   mongodb-data:
   rabbitmq-data:
   rustfs-logs:
