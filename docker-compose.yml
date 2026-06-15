@@ -1,12 +1,12 @@
 services:
-  nilabiru-proxy-manager:
+  nilabiru-nginx-proxy-manager:
     image: "jc21/nginx-proxy-manager:2.15.1"
     container_name: nilabiru-proxy-manager
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
-      - "81:81"
+      - "${TAILSCALE_IP}:81:81"
     volumes:
       - ./proxy-manager/data:/data
       - ./proxy-manager/letsencrypt:/etc/letsencrypt
@@ -62,13 +62,12 @@ services:
     restart: unless-stopped
     ports:
       - "${TAILSCALE_IP}:5672:5672"
-      - "${TAILSCALE_IP}:15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
       - RABBITMQ_DEFAULT_VHOST=${RABBITMQ_VHOST:-/}
-    volumes:
-      - rabbitmq-data:/var/lib/rabbitmq
     networks:
       - nilabiru-data-hub
 
@@ -77,9 +76,6 @@ services:
     container_name: nilabiru-rustfs
     restart: unless-stopped
     user: "0:0"
-    ports:
-      - "${TAILSCALE_IP}:9000:9000"
-      - "${TAILSCALE_IP}:9001:9001"
     environment:
       - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY}
       - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY}
@@ -97,8 +93,6 @@ services:
     image: nextcloud:29-apache
     container_name: nilabiru-nextcloud
     restart: unless-stopped
-    ports:
-      - "${TAILSCALE_IP}:8080:80"
     environment:
       - NC_setup_create_db_user=false
       - POSTGRES_HOST=nilabiru-postgres
@@ -111,6 +105,7 @@ services:
       - REDIS_HOST=nilabiru-redis
       - REDIS_HOST_PASSWORD=${REDIS_PASSWORD}
       - OVERWRITEPROTOCOL=https
+      - TRUSTED_PROXIES=172.16.0.0/12 192.168.0.0/16 10.0.0.0/8
     volumes:
       - nextcloud-data:/var/www/html
       - /sata-storage/nextcloud-files:/var/www/html/data
