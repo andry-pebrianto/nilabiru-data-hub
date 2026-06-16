@@ -2,7 +2,7 @@ services:
   nilabiru-nginx-proxy-manager:
     image: "jc21/nginx-proxy-manager:2.15.1"
     container_name: nilabiru-nginx-proxy-manager
-    restart: unless-stopped
+    restart: always
     ports:
       - "80:80"
       - "443:443"
@@ -16,7 +16,7 @@ services:
   nilabiru-redis:
     image: redis:8.8-alpine
     container_name: nilabiru-redis
-    restart: unless-stopped
+    restart: always
     ports:
       - "${TAILSCALE_IP}:6379:6379"
     volumes:
@@ -28,7 +28,7 @@ services:
   nilabiru-postgres:
     image: postgres:17-alpine
     container_name: nilabiru-postgres
-    restart: unless-stopped
+    restart: always
     ports:
       - "${TAILSCALE_IP}:5432:5432"
     environment:
@@ -45,7 +45,7 @@ services:
   nilabiru-mongodb:
     image: mongo:8.0.11
     container_name: nilabiru-mongodb
-    restart: unless-stopped
+    restart: always
     ports:
       - "${TAILSCALE_IP}:27017:27017"
     environment:
@@ -59,7 +59,7 @@ services:
   nilabiru-rabbitmq:
     image: rabbitmq:4.1-management-alpine
     container_name: nilabiru-rabbitmq
-    restart: unless-stopped
+    restart: always
     ports:
       - "${TAILSCALE_IP}:5672:5672"
     volumes:
@@ -74,7 +74,7 @@ services:
   nilabiru-rustfs:
     image: rustfs/rustfs:latest
     container_name: nilabiru-rustfs
-    restart: unless-stopped
+    restart: always
     user: "0:0"
     environment:
       - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY}
@@ -92,7 +92,7 @@ services:
   nilabiru-nextcloud:
     image: nextcloud:29-apache
     container_name: nilabiru-nextcloud
-    restart: unless-stopped
+    restart: always
     environment:
       - NC_setup_create_db_user=false
       - POSTGRES_HOST=nilabiru-postgres
@@ -120,7 +120,7 @@ services:
   nilabiru-portainer:
     image: portainer/portainer-ce:2.42.0
     container_name: nilabiru-portainer
-    restart: unless-stopped
+    restart: always
     ports:
       - "${TAILSCALE_IP}:9443:9443"
       - "${TAILSCALE_IP}:8000:8000"
