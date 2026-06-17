@@ -1,0 +1,17 @@
+serverAddr = "{{ .Envs.FRP_SERVER_ADDR }}"
+serverPort = 7000
+auth.token = "{{ .Envs.FRP_TOKEN }}"
+
+[[proxies]]
+name = "http"
+type = "tcp"
+localIP = "nilabiru-nginx-proxy-manager"
+localPort = 80
+remotePort = 80
+
+[[proxies]]
+name = "https"
+type = "tcp"
+localIP = "nilabiru-nginx-proxy-manager"
+localPort = 443
+remotePort = 443

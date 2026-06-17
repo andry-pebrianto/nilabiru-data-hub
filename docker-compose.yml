@@ -13,6 +13,18 @@ services:
     networks:
       - nilabiru-data-hub
 
+  nilabiru-frpc:
+    image: fatedier/frpc:v0.69.1
+    container_name: nilabiru-frpc
+    restart: unless-stopped
+    volumes:
+      - ./frpc.toml:/etc/frp/frpc.toml:ro
+    networks:
+      - nilabiru-data-hub
+    depends_on:
+      nilabiru-nginx-proxy-manager:
+        condition: service_started
+
   nilabiru-redis:
     image: redis:8.8-alpine
     container_name: nilabiru-redis

@@ -32,6 +32,8 @@ jobs:
             echo "NEXTCLOUD_ADMIN_USER=${{ secrets.NEXTCLOUD_ADMIN_USER }}"
             echo "NEXTCLOUD_ADMIN_PASSWORD=${{ secrets.NEXTCLOUD_ADMIN_PASSWORD }}"
             echo "NEXTCLOUD_TRUSTED_DOMAINS=${{ secrets.NEXTCLOUD_TRUSTED_DOMAINS }}"
+            echo "FRP_SERVER_ADDR=${{ secrets.FRP_SERVER_ADDR }}"
+            echo "FRP_TOKEN=${{ secrets.FRP_TOKEN }}"
           } > .env
 
       - name: Ensure Init Script is Executable
