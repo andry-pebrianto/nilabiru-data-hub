@@ -110,8 +110,6 @@ services:
       - NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS}
       - REDIS_HOST=nilabiru-redis
       - REDIS_HOST_PASSWORD=${REDIS_PASSWORD}
-      - OVERWRITEPROTOCOL=https
-      - TRUSTED_PROXIES=172.16.0.0/12 192.168.0.0/16 10.0.0.0/8
     volumes:
       - nextcloud-data:/var/www/html
       - /sata-storage/nextcloud-files:/var/www/html/data
