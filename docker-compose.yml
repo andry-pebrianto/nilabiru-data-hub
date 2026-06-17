@@ -2,7 +2,7 @@ services:
   nilabiru-nginx-proxy-manager:
     image: "jc21/nginx-proxy-manager:2.15.1"
     container_name: nilabiru-nginx-proxy-manager
-    restart: always
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
@@ -16,7 +16,7 @@ services:
   nilabiru-redis:
     image: redis:8.8-alpine
     container_name: nilabiru-redis
-    restart: always
+    restart: unless-stopped
     ports:
       - "${TAILSCALE_IP}:6379:6379"
     volumes:
@@ -28,7 +28,7 @@ services:
   nilabiru-postgres:
     image: postgres:17-alpine
     container_name: nilabiru-postgres
-    restart: always
+    restart: unless-stopped
     ports:
       - "${TAILSCALE_IP}:5432:5432"
     environment:
@@ -45,7 +45,7 @@ services:
   nilabiru-mongodb:
     image: mongo:8.0.11
     container_name: nilabiru-mongodb
-    restart: always
+    restart: unless-stopped
     ports:
       - "${TAILSCALE_IP}:27017:27017"
     environment:
@@ -59,9 +59,10 @@ services:
   nilabiru-rabbitmq:
     image: rabbitmq:4.1-management-alpine
     container_name: nilabiru-rabbitmq
-    restart: always
+    restart: unless-stopped
     ports:
       - "${TAILSCALE_IP}:5672:5672"
+      - "${TAILSCALE_IP}:15672:15672"
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     environment:
@@ -74,8 +75,11 @@ services:
   nilabiru-rustfs:
     image: rustfs/rustfs:latest
     container_name: nilabiru-rustfs
-    restart: always
+    restart: unless-stopped
     user: "0:0"
+    ports:
+      - "${TAILSCALE_IP}:9000:9000"
+      - "${TAILSCALE_IP}:9001:9001"
     environment:
       - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY}
       - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY}
@@ -92,7 +96,9 @@ services:
   nilabiru-nextcloud:
     image: nextcloud:29-apache
     container_name: nilabiru-nextcloud
-    restart: always
+    restart: unless-stopped
+    ports:
+      - "${TAILSCALE_IP}:8080:80"
     environment:
       - NC_setup_create_db_user=false
       - POSTGRES_HOST=nilabiru-postgres
@@ -120,7 +126,7 @@ services:
   nilabiru-portainer:
     image: portainer/portainer-ce:2.42.0
     container_name: nilabiru-portainer
-    restart: always
+    restart: unless-stopped
     ports:
       - "${TAILSCALE_IP}:9443:9443"
       - "${TAILSCALE_IP}:8000:8000"

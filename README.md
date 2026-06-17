@@ -6,23 +6,24 @@ A self-hosted data infrastructure stack for the Nilabiru ecosystem, bundling ess
 
 ## Overview
 
-**Nilabiru Data Hub** provisions and manages a cohesive set of data infrastructure services — cache, relational databases, document store, message broker, object storage, file management, and container management — all running in isolated Docker containers on a shared internal network. Deployments are fully automated via GitHub Actions on every push to `main`.
+**Nilabiru Data Hub** provisions and manages a cohesive set of data infrastructure services — reverse proxy, cache, relational databases, document store, message broker, object storage, file management, and container management — all running in isolated Docker containers on a shared internal network. Deployments are fully automated via GitHub Actions on every push to `main`.
 
 ---
 
 ## Services
 
-| Service        | Image                            | Port(s)         | Description                                                                                  |
-| -------------- | -------------------------------- | --------------- | -------------------------------------------------------------------------------------------- |
-| **Redis**      | `redis:8.8-alpine`               | `6379`          | In-memory cache and key-value store with password protection and memory limits               |
-| **PostgreSQL** | `postgres:17-alpine`             | `5432`          | Relational database with configurable user, password, and database name                      |
-| **MongoDB**    | `mongo:8.0`                      | `27017`         | Document-oriented NoSQL database with root authentication                                    |
-| **RabbitMQ**   | `rabbitmq:4.1-management-alpine` | `5672`, `15672` | Message broker with management UI available at port `15672`                                  |
-| **RustFS**     | `rustfs/rustfs:latest`           | `9000`, `9001`  | High-performance S3-compatible object storage (Apache 2.0); console available at port `9001` |
-| **Nextcloud**  | `nextcloud:29-apache`            | `8080`          | Self-hosted file management and cloud storage, backed by PostgreSQL and Redis                |
-| **Portainer**  | `portainer/portainer-ce:2.42.0`  | `9443`, `8000`  | Web-based Docker management dashboard                                                        |
+| Service                  | Image                            | Port(s)          | Description                                                                                   |
+| ------------------------ | --------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------- |
+| **Nginx Proxy Manager**  | `jc21/nginx-proxy-manager:2.15.1` | `80`, `443`, `81` | Reverse proxy and SSL/TLS certificate management, with a web-based admin UI on port `81`        |
+| **Redis**                | `redis:8.8-alpine`                | `6379`             | In-memory cache and key-value store with password protection                                    |
+| **PostgreSQL**           | `postgres:17-alpine`              | `5432`             | Relational database with configurable user, password, and database name                         |
+| **MongoDB**              | `mongo:8.0.11`                    | `27017`            | Document-oriented NoSQL database with root authentication                                        |
+| **RabbitMQ**             | `rabbitmq:4.1-management-alpine`  | `5672`, `15672`   | Message broker with management UI available at port `15672`                                     |
+| **RustFS**               | `rustfs/rustfs:latest`            | `9000`, `9001`     | High-performance S3-compatible object storage (Apache 2.0); console available at port `9001`    |
+| **Nextcloud**             | `nextcloud:29-apache`             | `8080`             | Self-hosted file management and cloud storage, backed by PostgreSQL and Redis, served behind the reverse proxy over HTTPS |
+| **Portainer**             | `portainer/portainer-ce:2.42.0`   | `9443`, `8000`     | Web-based Docker management dashboard                                                            |
 
-All services are connected through a shared bridge network named `nilabiru-data-hub`. All ports are bound to the Tailscale IP (`TAILSCALE_IP`) for secure private network access only.
+All services are connected through a shared bridge network named `nilabiru-data-hub`. With the exception of Nginx Proxy Manager's HTTP/HTTPS ports (`80`, `443`), which are exposed on all network interfaces to allow public traffic and SSL certificate issuance, every other port — including the Nginx Proxy Manager admin UI (`81`) — is bound to the Tailscale IP (`TAILSCALE_IP`) for secure private network access only.
 
 ---
 
@@ -32,6 +33,7 @@ All services are connected through a shared bridge network named `nilabiru-data-
 - Docker Compose `v2+`
 - A server with a mounted SATA drive at `/sata-storage` (used by RustFS and Nextcloud)
 - Tailscale installed and connected on the server and all client machines
+- Ports `80` and `443` open/forwarded on the host (used by Nginx Proxy Manager for reverse proxying and SSL certificate issuance)
 
 ---
 
@@ -88,11 +90,15 @@ NEXTCLOUD_TRUSTED_DOMAINS=your_nextcloud_trusted_domain
 
 > **Note:** Never commit `.env` to version control. It is already listed in `.gitignore`.
 
+> **Note:** This manual `.env` file is only needed for running `docker compose up -d` directly on the server. When deploying via the GitHub Actions workflow (see [CI/CD Deployment](#cicd-deployment)), the `.env` file is generated automatically on the runner from repository secrets — using the same variable names — and deleted again after each deploy.
+
 ### 3. Prepare storage directories
 
 ```bash
 mkdir -p /sata-storage/rustfs-data
 mkdir -p /sata-storage/nextcloud-files
+mkdir -p ./proxy-manager/data
+mkdir -p ./proxy-manager/letsencrypt
 ```
 
 ### 4. Start the stack
@@ -113,51 +119,80 @@ docker compose ps
 
 ## Service Access
 
-All services are accessible only via the Tailscale IP of the server.
+Most services are accessible only via the Tailscale IP of the server. The exception is Nginx Proxy Manager's ports `80` and `443`, which are exposed publicly to handle reverse-proxied traffic and SSL certificate issuance for any domains configured behind it.
 
-| Service             | URL / Address                 |
-| ------------------- | ----------------------------- |
-| Redis               | `<TAILSCALE_IP>:6379`         |
-| PostgreSQL          | `<TAILSCALE_IP>:5432`         |
-| MongoDB             | `<TAILSCALE_IP>:27017`        |
-| RabbitMQ AMQP       | `<TAILSCALE_IP>:5672`         |
-| RabbitMQ Management | `http://<TAILSCALE_IP>:15672` |
-| RustFS API          | `http://<TAILSCALE_IP>:9000`  |
-| RustFS Console      | `http://<TAILSCALE_IP>:9001`  |
-| Nextcloud           | `http://<TAILSCALE_IP>:8080`  |
-| Portainer           | `https://<TAILSCALE_IP>:9443` |
+| Service                          | URL / Address                 |
+| --------------------------------- | ------------------------------ |
+| Nginx Proxy Manager (Admin UI)   | `http://<TAILSCALE_IP>:81`    |
+| Redis                             | `<TAILSCALE_IP>:6379`         |
+| PostgreSQL                        | `<TAILSCALE_IP>:5432`         |
+| MongoDB                           | `<TAILSCALE_IP>:27017`        |
+| RabbitMQ AMQP                     | `<TAILSCALE_IP>:5672`         |
+| RabbitMQ Management               | `http://<TAILSCALE_IP>:15672` |
+| RustFS API                        | `http://<TAILSCALE_IP>:9000`  |
+| RustFS Console                    | `http://<TAILSCALE_IP>:9001`  |
+| Nextcloud                         | `http://<TAILSCALE_IP>:8080`  |
+| Portainer                         | `https://<TAILSCALE_IP>:9443` |
 
 ---
 
 ## Data Persistence
 
-Persistent volumes are defined for each stateful service:
+Persistent volumes and bind mounts are defined for each stateful service:
 
-| Volume                          | Service                             |
-| ------------------------------- | ----------------------------------- |
-| `redis-data`                    | Redis                               |
-| `postgres-data`                 | PostgreSQL                          |
-| `mongodb-data`                  | MongoDB                             |
-| `rabbitmq-data`                 | RabbitMQ                            |
-| `/sata-storage/rustfs-data`     | RustFS (host bind mount — data)     |
-| `rustfs-logs`                   | RustFS (logs)                       |
-| `nextcloud-data`                | Nextcloud (app files)               |
-| `/sata-storage/nextcloud-files` | Nextcloud (user files — bind mount) |
-| `portainer-data`                | Portainer                           |
+| Volume                          | Service                                       |
+| -------------------------------- | ----------------------------------------------- |
+| `./proxy-manager/data`           | Nginx Proxy Manager (bind mount — config & database) |
+| `./proxy-manager/letsencrypt`    | Nginx Proxy Manager (bind mount — SSL certificates)   |
+| `redis-data`                     | Redis                                            |
+| `postgres-data`                  | PostgreSQL                                       |
+| `mongodb-data`                   | MongoDB                                          |
+| `rabbitmq-data`                  | RabbitMQ                                         |
+| `/sata-storage/rustfs-data`      | RustFS (host bind mount — data)                  |
+| `rustfs-logs`                    | RustFS (logs)                                    |
+| `nextcloud-data`                 | Nextcloud (app files)                            |
+| `/sata-storage/nextcloud-files`  | Nextcloud (user files — bind mount)              |
+| `portainer-data`                 | Portainer                                        |
 
 ---
 
 ## CI/CD Deployment
 
-This project uses GitHub Actions for continuous deployment. On every push to the `main` branch, the workflow:
+This project uses GitHub Actions for continuous deployment, running on a **self-hosted runner**. On every push to the `main` branch, the workflow at `.github/workflows/deploy.yml`:
 
 1. Checks out the latest code on the self-hosted runner.
-2. Validates the Compose configuration with `docker compose config`.
-3. Restarts all services with `docker compose up -d --remove-orphans`.
-4. Polls container status and health checks every 10 seconds, up to a maximum of 300 seconds.
-5. Exits successfully once all containers are `running` and `healthy`; fails with a list of unhealthy containers if the timeout is reached.
+2. Generates a `.env` file on the runner from GitHub Actions secrets (the same variable names used in [Configure environment variables](#2-configure-environment-variables)).
+3. Makes `init-db.sh` executable (`chmod +x init-db.sh`).
+4. Validates the Compose configuration with `docker compose config`.
+5. Deploys/redeploys all services with `docker compose up -d --remove-orphans`.
+6. Removes the generated `.env` file from the runner (`rm -f .env`) — this cleanup step always runs, even if an earlier step fails, so secrets are never left on disk.
 
-The workflow file is located at `.github/workflows/deploy.yml`. A self-hosted GitHub Actions runner must be configured on the target server for this to work.
+> **Note:** The workflow does not currently perform a post-deploy health check; it finishes as soon as `docker compose up -d` completes. Run `docker compose ps` on the server afterward to confirm every container is `running`/`healthy`.
+
+A self-hosted GitHub Actions runner must be configured on the target server for this workflow to run.
+
+### Required GitHub Secrets
+
+Because the `.env` file is generated entirely from secrets at deploy time, the following repository secrets must be configured under **Settings → Secrets and variables → Actions**:
+
+| Secret                       | Used by                  |
+| ----------------------------- | -------------------------- |
+| `TAILSCALE_IP`                | All services (port binding) |
+| `REDIS_PASSWORD`              | Redis                       |
+| `POSTGRES_USER`               | PostgreSQL, Nextcloud       |
+| `POSTGRES_PASSWORD`           | PostgreSQL, Nextcloud       |
+| `POSTGRES_DB`                 | PostgreSQL                  |
+| `MONGO_ROOT_USERNAME`         | MongoDB                     |
+| `MONGO_ROOT_PASSWORD`         | MongoDB                     |
+| `RABBITMQ_USER`               | RabbitMQ                    |
+| `RABBITMQ_PASSWORD`           | RabbitMQ                    |
+| `RABBITMQ_VHOST`              | RabbitMQ                    |
+| `RUSTFS_ACCESS_KEY`           | RustFS                      |
+| `RUSTFS_SECRET_KEY`           | RustFS                      |
+| `NEXTCLOUD_DB_NAME`           | PostgreSQL, Nextcloud        |
+| `NEXTCLOUD_ADMIN_USER`        | Nextcloud                   |
+| `NEXTCLOUD_ADMIN_PASSWORD`    | Nextcloud                   |
+| `NEXTCLOUD_TRUSTED_DOMAINS`   | Nextcloud                   |
 
 ---
 
