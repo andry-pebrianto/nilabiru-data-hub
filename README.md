@@ -15,7 +15,7 @@ A self-hosted data infrastructure stack for the Nilabiru ecosystem, bundling ess
 | Service                 | Image                             | Port(s)           | Description                                                                                                               |
 | ----------------------- | --------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | **Nginx Proxy Manager** | `jc21/nginx-proxy-manager:2.15.1` | `80`, `443`, `81` | Reverse proxy and SSL/TLS certificate management, with a web-based admin UI on port `81`                                  |
-| **frpc**                | `fatedier/frpc:v0.69.1`           | —                 | FRP client that tunnels traffic through an FRP server; configured via `frpc.toml`                                         |
+| **FRPC**                | `fatedier/frpc:v0.69.1`           | —                 | FRP client that tunnels traffic through an FRP server; configured via `frpc.toml`                                         |
 | **Redis**               | `redis:8.8-alpine`                | `6379`            | In-memory cache and key-value store with password protection                                                              |
 | **PostgreSQL**          | `postgres:17-alpine`              | `5432`            | Relational database with configurable user, password, and database name                                                   |
 | **MongoDB**             | `mongo:8.0.11`                    | `27017`           | Document-oriented NoSQL database with root authentication                                                                 |
@@ -60,7 +60,7 @@ Then edit `.env`:
 
 ```env
 # Tailscale
-TAILSCALE_IP=100.x.x.x
+TAILSCALE_IP=your_tailscale_ip
 
 # FRP
 FRP_SERVER_ADDR=your_frp_server_address

@@ -1,5 +1,5 @@
 # Tailscale
-TAILSCALE_IP=100.x.x.x
+TAILSCALE_IP=your_tailscale_ip
 
 # FRP
 FRP_SERVER_ADDR=your_frp_server_address
