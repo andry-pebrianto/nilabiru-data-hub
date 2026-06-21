@@ -1,6 +1,10 @@
 # Tailscale
 TAILSCALE_IP=100.x.x.x
 
+# FRP
+FRP_SERVER_ADDR=your_frp_server_address
+FRP_TOKEN=your_frp_token
+
 # Redis
 REDIS_PASSWORD=your_redis_password
 
@@ -23,7 +27,7 @@ RUSTFS_ACCESS_KEY=your_rustfs_access_key
 RUSTFS_SECRET_KEY=your_rustfs_secret_key
 
 # Nextcloud
-NEXTCLOUD_DB_NAME=your_nextcloud_db_name
-NEXTCLOUD_ADMIN_USER=your_nextcloud_admin_user
+NEXTCLOUD_DB_NAME=nextcloud
+NEXTCLOUD_ADMIN_USER=your_nextcloud_admin_username
 NEXTCLOUD_ADMIN_PASSWORD=your_nextcloud_admin_password
 NEXTCLOUD_TRUSTED_DOMAINS=your_nextcloud_trusted_domain
