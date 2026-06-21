@@ -12,19 +12,19 @@ A self-hosted data infrastructure stack for the Nilabiru ecosystem, bundling ess
 
 ## Services
 
-| Service                 | Image                             | Port(s)           | Description                                                                                                               |
-| ----------------------- | --------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **Nginx Proxy Manager** | `jc21/nginx-proxy-manager:2.15.1` | `80`, `443`, `81` | Reverse proxy and SSL/TLS certificate management, with a web-based admin UI on port `81`                                  |
-| **FRPC**                | `fatedier/frpc:v0.69.1`           | —                 | FRP client that tunnels traffic through an FRP server; configured via `frpc.toml`                                         |
-| **Redis**               | `redis:8.8-alpine`                | `6379`            | In-memory cache and key-value store with password protection                                                              |
-| **PostgreSQL**          | `postgres:17-alpine`              | `5432`            | Relational database with configurable user, password, and database name                                                   |
-| **MongoDB**             | `mongo:8.0.11`                    | `27017`           | Document-oriented NoSQL database with root authentication                                                                 |
-| **RabbitMQ**            | `rabbitmq:4.1-management-alpine`  | `5672`, `15672`   | Message broker with management UI available at port `15672`                                                               |
-| **RustFS**              | `rustfs/rustfs:latest`            | `9000`, `9001`    | High-performance S3-compatible object storage (Apache 2.0); console available at port `9001`                              |
-| **Nextcloud**           | `nextcloud:29-apache`             | `8080`            | Self-hosted file management and cloud storage, backed by PostgreSQL and Redis, served behind the reverse proxy over HTTPS |
-| **Portainer**           | `portainer/portainer-ce:2.42.0`   | `9443`, `8000`    | Web-based Docker management dashboard                                                                                     |
+| Service                          | Image                             | Port(s)           | Description                                                                                                               |
+| -------------------------------- | --------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **nilabiru-nginx-proxy-manager** | `jc21/nginx-proxy-manager:2.15.1` | `80`, `443`, `81` | Reverse proxy and SSL/TLS certificate management, with a web-based admin UI on port `81`                                  |
+| **nilabiru-frpc**                | `fatedier/frpc:v0.69.1`           | —                 | FRP client that tunnels traffic through an FRP server; configured via `frpc.toml`                                         |
+| **nilabiru-redis**               | `redis:8.8-alpine`                | `6379`            | In-memory cache and key-value store with password protection                                                              |
+| **nilabiru-postgres**            | `postgres:17-alpine`              | `5432`            | Relational database with configurable user, password, and database name                                                   |
+| **nilabiru-mongodb**             | `mongo:8.0.11`                    | `27017`           | Document-oriented NoSQL database with root authentication                                                                 |
+| **nilabiru-rabbitmq**            | `rabbitmq:4.1-management-alpine`  | `5672`, `15672`   | Message broker with management UI available at port `15672`                                                               |
+| **nilabiru-rustfs**              | `rustfs/rustfs:latest`            | `9000`, `9001`    | High-performance S3-compatible object storage (Apache 2.0); console available at port `9001`                              |
+| **nilabiru-nextcloud**           | `nextcloud:29-apache`             | `8080`            | Self-hosted file management and cloud storage, backed by PostgreSQL and Redis, served behind the reverse proxy over HTTPS |
+| **nilabiru-portainer**           | `portainer/portainer-ce:2.42.0`   | `9443`, `8000`    | Web-based Docker management dashboard                                                                                     |
 
-All services are connected through a shared bridge network named `nilabiru-data-hub`. With the exception of Nginx Proxy Manager's HTTP/HTTPS ports (`80`, `443`), which are exposed on all network interfaces to allow public traffic and SSL certificate issuance, every other port — including the Nginx Proxy Manager admin UI (`81`) — is bound to the Tailscale IP (`TAILSCALE_IP`) for secure private network access only. The **frpc** service exposes no host ports directly; it tunnels traffic through the configured FRP server.
+All services are connected through a shared bridge network named `nilabiru-data-hub`. With the exception of Nginx Proxy Manager's HTTP/HTTPS ports (`80`, `443`), which are exposed on all network interfaces to allow public traffic and SSL certificate issuance, every other port — including the Nginx Proxy Manager admin UI (`81`) — is bound to the Tailscale IP (`TAILSCALE_IP`) for secure private network access only. The **nilabiru-frpc** service exposes no host ports directly; it tunnels traffic through the configured FRP server.
 
 ---
 
@@ -160,14 +160,16 @@ Persistent volumes and bind mounts are defined for each stateful service:
 | `./proxy-manager/data`          | Nginx Proxy Manager (bind mount — config & database) |
 | `./proxy-manager/letsencrypt`   | Nginx Proxy Manager (bind mount — SSL certificates)  |
 | `./frpc.toml`                   | frpc (bind mount — read-only config)                 |
-| `redis-data`                    | Redis                                                |
 | `postgres-data`                 | PostgreSQL                                           |
+| `./init-db.sh`                  | PostgreSQL (bind mount — initialization script)      |
+| `redis-data`                    | Redis                                                |
 | `mongodb-data`                  | MongoDB                                              |
 | `rabbitmq-data`                 | RabbitMQ                                             |
 | `/sata-storage/rustfs-data`     | RustFS (host bind mount — data)                      |
 | `rustfs-logs`                   | RustFS (logs)                                        |
 | `nextcloud-data`                | Nextcloud (app files)                                |
 | `/sata-storage/nextcloud-files` | Nextcloud (user files — bind mount)                  |
+| `/var/run/docker.sock`          | Portainer (bind mount — Docker socket access)        |
 | `portainer-data`                | Portainer                                            |
 
 ---
