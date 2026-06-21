@@ -1,9 +1,9 @@
-serverAddr = "{{ .Envs.FRP_SERVER_ADDR }}"
+serverAddr = "103.103.20.44"
 serverPort = 7000
 
 [auth]
 method = "token"
-token = "{{ .Envs.FRP_TOKEN }}"
+token = "rT3$yU&8iO!4pP*avB5@nM%1pOf6iU!y"
 
 [[proxies]]
 name = "http"
