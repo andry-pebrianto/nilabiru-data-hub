@@ -112,10 +112,11 @@ serverPort = 7000
 method = "token"
 token = "{{ .Envs.FRP_TOKEN }}"
 
-webServer.addr = "0.0.0.0"
-webServer.port = 7400
-webServer.user = "{{ .Envs.FRP_USER }}"
-webServer.password = "{{ .Envs.FRP_PASSWORD }}"
+[webServer]
+addr = "0.0.0.0"
+port = 7400
+user = "{{ .Envs.FRP_USER }}"
+password = "{{ .Envs.FRP_PASSWORD }}"
 
 [[proxies]]
 name = "http"
