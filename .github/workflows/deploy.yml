@@ -36,6 +36,9 @@ jobs:
             echo "FRP_TOKEN=${{ secrets.FRP_TOKEN }}"
             echo "FRP_USER=${{ secrets.FRP_USER }}"
             echo "FRP_PASSWORD=${{ secrets.FRP_PASSWORD }}"
+            echo "SEAFILE_ADMIN_EMAIL=${{ secrets.SEAFILE_ADMIN_EMAIL }}"
+            echo "SEAFILE_ADMIN_PASSWORD=${{ secrets.SEAFILE_ADMIN_PASSWORD }}"
+            echo "SEAFILE_HOSTNAME=${{ secrets.SEAFILE_HOSTNAME }}"
           } > .env
 
       - name: Ensure Init Script is Executable
