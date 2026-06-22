@@ -141,30 +141,6 @@ services:
       nilabiru-redis:
         condition: service_started
 
-  nilabiru-seafile:
-    image: seafileltd/seafile-mc:11.0-latest
-    container_name: nilabiru-seafile
-    restart: unless-stopped
-    ports:
-      - "${TAILSCALE_IP}:8090:80"
-    environment:
-      - DB_HOST=nilabiru-postgres
-      - DB_ROOT_PASSWD=${POSTGRES_PASSWORD}
-      - SEAFILE_ADMIN_EMAIL=${SEAFILE_ADMIN_EMAIL}
-      - SEAFILE_ADMIN_PASSWORD=${SEAFILE_ADMIN_PASSWORD}
-      - SEAFILE_SERVER_HOSTNAME=${SEAFILE_HOSTNAME}
-      - SEAFILE_SERVER_LETSENCRYPT=false
-      - TIME_ZONE=Asia/Jakarta
-    volumes:
-      - /sata-storage/seafile-data:/shared
-    networks:
-      - nilabiru-data-hub
-    depends_on:
-      nilabiru-postgres:
-        condition: service_started
-      nilabiru-redis:
-        condition: service_started
-
   nilabiru-portainer:
     image: portainer/portainer-ce:2.42.0
     container_name: nilabiru-portainer
@@ -188,7 +164,6 @@ volumes:
   portainer-data:
   npm-data:
   npm-letsencrypt:
-  seafile-data:
 
 networks:
   nilabiru-data-hub:
