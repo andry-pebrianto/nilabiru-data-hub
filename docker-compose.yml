@@ -17,7 +17,8 @@ services:
     image: fatedier/frpc:v0.69.1
     container_name: nilabiru-frpc
     restart: unless-stopped
-    command: ["-c", "/etc/frp/frpc.toml"]
+    entrypoint: ["/usr/bin/frpc"]
+    command: ["-c", "/etc/frp/frpc.toml", "-e"]
     environment:
       - FRP_SERVER_ADDR=${FRP_SERVER_ADDR}
       - FRP_TOKEN=${FRP_TOKEN}
