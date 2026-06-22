@@ -4,6 +4,8 @@ TAILSCALE_IP=your_tailscale_ip
 # FRP
 FRP_SERVER_ADDR=your_frp_server_address
 FRP_TOKEN=your_frp_token
+FRP_USER=your_frpc_dashboard_username
+FRP_PASSWORD=your_frpc_dashboard_password
 
 # Redis
 REDIS_PASSWORD=your_redis_password

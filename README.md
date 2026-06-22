@@ -15,7 +15,7 @@ A self-hosted data infrastructure stack for the Nilabiru ecosystem, bundling ess
 | Service                          | Image                             | Port(s)           | Description                                                                                                               |
 | -------------------------------- | --------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | **nilabiru-nginx-proxy-manager** | `jc21/nginx-proxy-manager:2.15.1` | `80`, `443`, `81` | Reverse proxy and SSL/TLS certificate management, with a web-based admin UI on port `81`                                  |
-| **nilabiru-frpc**                | `fatedier/frpc:v0.69.1`           | —                 | FRP client that tunnels traffic through an FRP server; configured via `frpc.toml`                                         |
+| **nilabiru-frpc**                | `fatedier/frpc:v0.69.1`           | `7400`            | FRP client that tunnels traffic through an FRP server; web dashboard available at port `7400`                             |
 | **nilabiru-redis**               | `redis:8.8-alpine`                | `6379`            | In-memory cache and key-value store with password protection                                                              |
 | **nilabiru-postgres**            | `postgres:17-alpine`              | `5432`            | Relational database with configurable user, password, and database name                                                   |
 | **nilabiru-mongodb**             | `mongo:8.0.11`                    | `27017`           | Document-oriented NoSQL database with root authentication                                                                 |
@@ -24,7 +24,7 @@ A self-hosted data infrastructure stack for the Nilabiru ecosystem, bundling ess
 | **nilabiru-nextcloud**           | `nextcloud:29-apache`             | `8080`            | Self-hosted file management and cloud storage, backed by PostgreSQL and Redis, served behind the reverse proxy over HTTPS |
 | **nilabiru-portainer**           | `portainer/portainer-ce:2.42.0`   | `9443`, `8000`    | Web-based Docker management dashboard                                                                                     |
 
-All services are connected through a shared bridge network named `nilabiru-data-hub`. With the exception of Nginx Proxy Manager's HTTP/HTTPS ports (`80`, `443`), which are exposed on all network interfaces to allow public traffic and SSL certificate issuance, every other port — including the Nginx Proxy Manager admin UI (`81`) — is bound to the Tailscale IP (`TAILSCALE_IP`) for secure private network access only. The **nilabiru-frpc** service exposes no host ports directly; it tunnels traffic through the configured FRP server.
+All services are connected through a shared bridge network named `nilabiru-data-hub`. With the exception of Nginx Proxy Manager's HTTP/HTTPS ports (`80`, `443`), which are exposed on all network interfaces to allow public traffic and SSL certificate issuance, every other port is bound to the Tailscale IP (`TAILSCALE_IP`) for secure private network access only — including the Nginx Proxy Manager admin UI (`81`), the frpc web dashboard (`7400`), and all other service ports.
 
 ---
 
@@ -65,6 +65,8 @@ TAILSCALE_IP=your_tailscale_ip
 # FRP
 FRP_SERVER_ADDR=your_frp_server_address
 FRP_TOKEN=your_frp_token
+FRP_USER=your_frpc_dashboard_username
+FRP_PASSWORD=your_frpc_dashboard_password
 
 # Redis
 REDIS_PASSWORD=your_redis_password
@@ -100,11 +102,34 @@ NEXTCLOUD_TRUSTED_DOMAINS=your_nextcloud_trusted_domain
 
 ### 3. Prepare the frpc configuration
 
-Ensure `frpc.toml` exists in the repository root and is configured to connect to your FRP server. The `FRP_SERVER_ADDR` and `FRP_TOKEN` environment variables are passed into the container and should be referenced inside `frpc.toml` using FRP's environment variable expansion syntax:
+Ensure `frpc.toml` exists in the repository root and is configured to connect to your FRP server. The environment variables are passed into the container and should be referenced inside `frpc.toml` using FRP's environment variable expansion syntax:
 
 ```toml
 serverAddr = "{{ .Envs.FRP_SERVER_ADDR }}"
-auth.token = "{{ .Envs.FRP_TOKEN }}"
+serverPort = 7000
+
+[auth]
+method = "token"
+token = "{{ .Envs.FRP_TOKEN }}"
+
+webServer.addr = "0.0.0.0"
+webServer.port = 7400
+webServer.user = "{{ .Envs.FRP_USER }}"
+webServer.password = "{{ .Envs.FRP_PASSWORD }}"
+
+[[proxies]]
+name = "http"
+type = "tcp"
+localIP = "nilabiru-nginx-proxy-manager"
+localPort = 80
+remotePort = 80
+
+[[proxies]]
+name = "https"
+type = "tcp"
+localIP = "nilabiru-nginx-proxy-manager"
+localPort = 443
+remotePort = 443
 ```
 
 ### 4. Prepare storage directories
@@ -112,9 +137,9 @@ auth.token = "{{ .Envs.FRP_TOKEN }}"
 ```bash
 mkdir -p /sata-storage/rustfs-data
 mkdir -p /sata-storage/nextcloud-files
-mkdir -p ./proxy-manager/data
-mkdir -p ./proxy-manager/letsencrypt
 ```
+
+> **Note:** Unlike previous versions, Nginx Proxy Manager now uses Docker named volumes (`npm-data` and `npm-letsencrypt`) instead of bind mounts. No manual directory creation is needed for NPM.
 
 ### 5. Start the stack
 
@@ -139,6 +164,7 @@ Most services are accessible only via the Tailscale IP of the server. The except
 | Service                        | URL / Address                 |
 | ------------------------------ | ----------------------------- |
 | Nginx Proxy Manager (Admin UI) | `http://<TAILSCALE_IP>:81`    |
+| frpc Web Dashboard             | `http://<TAILSCALE_IP>:7400`  |
 | Redis                          | `<TAILSCALE_IP>:6379`         |
 | PostgreSQL                     | `<TAILSCALE_IP>:5432`         |
 | MongoDB                        | `<TAILSCALE_IP>:27017`        |
@@ -153,24 +179,26 @@ Most services are accessible only via the Tailscale IP of the server. The except
 
 ## Data Persistence
 
-Persistent volumes and bind mounts are defined for each stateful service:
+All stateful services use Docker named volumes for reliable persistence across restarts and redeployments. RustFS and Nextcloud user files additionally use host bind mounts pointing to the SATA drive for large-capacity storage.
 
-| Volume                          | Service                                              |
-| ------------------------------- | ---------------------------------------------------- |
-| `./proxy-manager/data`          | Nginx Proxy Manager (bind mount — config & database) |
-| `./proxy-manager/letsencrypt`   | Nginx Proxy Manager (bind mount — SSL certificates)  |
-| `./frpc.toml`                   | frpc (bind mount — read-only config)                 |
-| `postgres-data`                 | PostgreSQL                                           |
-| `./init-db.sh`                  | PostgreSQL (bind mount — initialization script)      |
-| `redis-data`                    | Redis                                                |
-| `mongodb-data`                  | MongoDB                                              |
-| `rabbitmq-data`                 | RabbitMQ                                             |
-| `/sata-storage/rustfs-data`     | RustFS (host bind mount — data)                      |
-| `rustfs-logs`                   | RustFS (logs)                                        |
-| `nextcloud-data`                | Nextcloud (app files)                                |
-| `/sata-storage/nextcloud-files` | Nextcloud (user files — bind mount)                  |
-| `/var/run/docker.sock`          | Portainer (bind mount — Docker socket access)        |
-| `portainer-data`                | Portainer                                            |
+| Volume / Mount                  | Type         | Service                                              |
+| ------------------------------- | ------------ | ---------------------------------------------------- |
+| `npm-data`                      | Named volume | Nginx Proxy Manager (config & database)              |
+| `npm-letsencrypt`               | Named volume | Nginx Proxy Manager (SSL certificates)               |
+| `./frpc.toml`                   | Bind mount   | frpc (read-only config)                              |
+| `postgres-data`                 | Named volume | PostgreSQL                                           |
+| `./init-db.sh`                  | Bind mount   | PostgreSQL (initialization script)                   |
+| `redis-data`                    | Named volume | Redis                                                |
+| `mongodb-data`                  | Named volume | MongoDB                                              |
+| `rabbitmq-data`                 | Named volume | RabbitMQ                                             |
+| `/sata-storage/rustfs-data`     | Bind mount   | RustFS (data — requires SATA drive mounted)          |
+| `rustfs-logs`                   | Named volume | RustFS (logs)                                        |
+| `nextcloud-data`                | Named volume | Nextcloud (app files)                                |
+| `/sata-storage/nextcloud-files` | Bind mount   | Nextcloud (user files — requires SATA drive mounted) |
+| `/var/run/docker.sock`          | Bind mount   | Portainer (Docker socket access)                     |
+| `portainer-data`                | Named volume | Portainer                                            |
+
+> **Note:** The bind mounts pointing to `/sata-storage` depend on the SATA drive being mounted at that path. Ensure the drive is configured to auto-mount on boot via `/etc/fstab` to prevent data access failures after a server reboot.
 
 ---
 
@@ -198,6 +226,8 @@ Because the `.env` file is generated entirely from secrets at deploy time, the f
 | `TAILSCALE_IP`              | All services (port binding) |
 | `FRP_SERVER_ADDR`           | frpc                        |
 | `FRP_TOKEN`                 | frpc                        |
+| `FRP_USER`                  | frpc (dashboard login)      |
+| `FRP_PASSWORD`              | frpc (dashboard login)      |
 | `REDIS_PASSWORD`            | Redis                       |
 | `POSTGRES_USER`             | PostgreSQL, Nextcloud       |
 | `POSTGRES_PASSWORD`         | PostgreSQL, Nextcloud       |

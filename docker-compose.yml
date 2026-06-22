@@ -8,8 +8,8 @@ services:
       - "443:443"
       - "${TAILSCALE_IP}:81:81"
     volumes:
-      - ./proxy-manager/data:/data
-      - ./proxy-manager/letsencrypt:/etc/letsencrypt
+      - npm-data:/data
+      - npm-letsencrypt:/etc/letsencrypt
     networks:
       - nilabiru-data-hub
 
@@ -21,6 +21,10 @@ services:
     environment:
       - FRP_SERVER_ADDR=${FRP_SERVER_ADDR}
       - FRP_TOKEN=${FRP_TOKEN}
+      - FRP_USER=${FRP_USER}
+      - FRP_PASSWORD=${FRP_PASSWORD}
+    ports:
+      - "${TAILSCALE_IP}:7400:7400"
     volumes:
       - ./frpc.toml:/etc/frp/frpc.toml:ro
     networks:
@@ -158,6 +162,8 @@ volumes:
   rustfs-logs:
   nextcloud-data:
   portainer-data:
+  npm-data:
+  npm-letsencrypt:
 
 networks:
   nilabiru-data-hub:
