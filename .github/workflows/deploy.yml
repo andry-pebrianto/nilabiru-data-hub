@@ -42,7 +42,7 @@ jobs:
         run: chmod +x init-db.sh
 
       - name: Validate Docker Compose
-        run: docker compose config > /dev/null
+        run: docker compose config --quiet
 
       - name: Run Deploy Script
         run: docker compose up -d --remove-orphans
