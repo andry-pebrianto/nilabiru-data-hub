@@ -211,7 +211,7 @@ This project uses GitHub Actions for continuous deployment, running on a **self-
 2. Generates a `.env` file on the runner from GitHub Actions secrets (the same variable names used in [Configure environment variables](#2-configure-environment-variables)).
 3. Makes `init-db.sh` executable (`chmod +x init-db.sh`).
 4. Validates the Compose configuration with `docker compose config`.
-5. Deploys/redeploys all services with `docker compose up -d --remove-orphans`.
+5. Deploys/redeploys all services with `docker compose up -d --remove-orphans --build`.
 6. Removes the generated `.env` file from the runner (`rm -f .env`) — this cleanup step always runs, even if an earlier step fails, so secrets are never left on disk.
 
 > **Note:** The workflow does not currently perform a post-deploy health check; it finishes as soon as `docker compose up -d` completes. Run `docker compose ps` on the server afterward to confirm every container is `running`/`healthy`.
