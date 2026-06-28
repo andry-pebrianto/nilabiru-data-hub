@@ -50,3 +50,7 @@ jobs:
       - name: Cleanup .env
         if: always()
         run: rm -f .env
+
+      - name: Cleanup unused images
+        if: always()
+        run: docker image prune -f
