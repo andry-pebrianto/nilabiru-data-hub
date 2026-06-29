@@ -154,6 +154,44 @@ services:
     networks:
       - nilabiru-data-hub
 
+  nilabiru-ollama:
+    image: ollama/ollama:0.6.8
+    container_name: nilabiru-ollama
+    restart: unless-stopped
+    ports:
+      - "${TAILSCALE_IP}:11434:11434"
+    environment:
+      - OLLAMA_NUM_PARALLEL=2
+      - OLLAMA_MAX_LOADED_MODELS=2
+      - OLLAMA_NUM_THREAD=12
+      - OLLAMA_FLASH_ATTENTION=1
+      - OLLAMA_KEEP_ALIVE=30m
+      - OLLAMA_INTEL_GPU=0
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - nilabiru-data-hub
+
+  nilabiru-open-webui:
+    image: ghcr.io/open-webui/open-webui:v0.5.20
+    container_name: nilabiru-open-webui
+    restart: unless-stopped
+    ports:
+      - "${TAILSCALE_IP}:3000:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://nilabiru-ollama:11434
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@nilabiru-redis:6379/1
+    volumes:
+      - open-webui-data:/app/backend/data
+    networks:
+      - nilabiru-data-hub
+    depends_on:
+      nilabiru-ollama:
+        condition: service_started
+      nilabiru-redis:
+        condition: service_started
+
 volumes:
   redis-data:
   postgres-data:
@@ -164,6 +202,8 @@ volumes:
   portainer-data:
   npm-data:
   npm-letsencrypt:
+  ollama-data:
+  open-webui-data:
 
 networks:
   nilabiru-data-hub:
