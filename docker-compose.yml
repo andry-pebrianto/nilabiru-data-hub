@@ -155,7 +155,7 @@ services:
       - nilabiru-data-hub
 
   nilabiru-ollama:
-    image: ollama/ollama:0.6.8
+    image: ollama/ollama:0.30.11
     container_name: nilabiru-ollama
     restart: unless-stopped
     ports:
@@ -173,7 +173,7 @@ services:
       - nilabiru-data-hub
 
   nilabiru-open-webui:
-    image: ghcr.io/open-webui/open-webui:v0.5.20
+    image: ghcr.io/open-webui/open-webui:v0.9.6
     container_name: nilabiru-open-webui
     restart: unless-stopped
     ports:
