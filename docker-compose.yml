@@ -192,6 +192,19 @@ services:
       nilabiru-redis:
         condition: service_started
 
+  nilabiru-searxng:
+    image: ghcr.io/searxng/searxng:2026.6.26-f8ffbf36f
+    container_name: nilabiru-searxng
+    restart: unless-stopped
+    ports:
+      - "${TAILSCALE_IP}:8888:8080"
+    volumes:
+      - searxng-data:/etc/searxng
+    environment:
+      - SEARXNG_BASE_URL=http://nilabiru-searxng:8080
+    networks:
+      - nilabiru-data-hub
+
 volumes:
   redis-data:
   postgres-data:
@@ -204,6 +217,7 @@ volumes:
   npm-letsencrypt:
   ollama-data:
   open-webui-data:
+  searxng-data:
 
 networks:
   nilabiru-data-hub:
