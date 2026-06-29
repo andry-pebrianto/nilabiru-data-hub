@@ -168,7 +168,7 @@ services:
       - OLLAMA_KEEP_ALIVE=30m
       - OLLAMA_INTEL_GPU=0
     volumes:
-      - ollama-data:/root/.ollama
+      - /sata-storage/ollama-models:/root/.ollama
     networks:
       - nilabiru-data-hub
 
@@ -202,6 +202,7 @@ services:
       - searxng-data:/etc/searxng
     environment:
       - SEARXNG_BASE_URL=http://nilabiru-searxng:8080
+      - SEARXNG_SEARCH__FORMATS=html,json
     networks:
       - nilabiru-data-hub
 
@@ -215,7 +216,6 @@ volumes:
   portainer-data:
   npm-data:
   npm-letsencrypt:
-  ollama-data:
   open-webui-data:
   searxng-data:
 
