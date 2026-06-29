@@ -178,6 +178,8 @@ services:
     restart: unless-stopped
     ports:
       - "${TAILSCALE_IP}:3000:8080"
+    healthcheck:
+      disable: true
     environment:
       - OLLAMA_BASE_URL=http://nilabiru-ollama:11434
       - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
