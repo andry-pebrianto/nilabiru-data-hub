@@ -26,8 +26,8 @@ jobs:
             echo "RABBITMQ_USER=${{ secrets.RABBITMQ_USER }}"
             echo "RABBITMQ_PASSWORD=${{ secrets.RABBITMQ_PASSWORD }}"
             echo "RABBITMQ_VHOST=${{ secrets.RABBITMQ_VHOST }}"
-            echo "SEAWEEDFS_ACCESS_KEY=${{ secrets.SEAWEEDFS_ACCESS_KEY }}"
-            echo "SEAWEEDFS_SECRET_KEY=${{ secrets.SEAWEEDFS_SECRET_KEY }}"
+            echo "RUSTFS_ACCESS_KEY=${{ secrets.RUSTFS_ACCESS_KEY }}"
+            echo "RUSTFS_SECRET_KEY=${{ secrets.RUSTFS_SECRET_KEY }}"
             echo "NEXTCLOUD_DB_NAME=${{ secrets.NEXTCLOUD_DB_NAME }}"
             echo "NEXTCLOUD_ADMIN_USER=${{ secrets.NEXTCLOUD_ADMIN_USER }}"
             echo "NEXTCLOUD_ADMIN_PASSWORD=${{ secrets.NEXTCLOUD_ADMIN_PASSWORD }}"
@@ -38,32 +38,6 @@ jobs:
             echo "FRP_PASSWORD=${{ secrets.FRP_PASSWORD }}"
           } > .env
 
-      - name: Create SeaweedFS S3 Config
-        run: |
-          mkdir -p seaweedfs
-          cat > seaweedfs/s3config.json <<EOF
-          {
-              "identities": [
-                  {
-                      "name": "admin",
-                      "credentials": [
-                          {
-                              "accessKey": "${{ secrets.SEAWEEDFS_ACCESS_KEY }}",
-                              "secretKey": "${{ secrets.SEAWEEDFS_SECRET_KEY }}"
-                          }
-                      ],
-                      "actions": [
-                          "Admin",
-                          "Read",
-                          "Write",
-                          "List",
-                          "Tagging"
-                      ]
-                  }
-              ]
-          }
-          EOF
-
       - name: Ensure Init Script is Executable
         run: chmod +x init-db.sh
 
@@ -73,9 +47,9 @@ jobs:
       - name: Run Deploy Script
         run: docker compose up -d --remove-orphans --build
 
-      - name: Cleanup .env and SeaweedFS Config
+      - name: Cleanup .env
         if: always()
-        run: rm -f .env seaweedfs/s3config.json
+        run: rm -f .env
 
       - name: Cleanup unused images
         if: always()
