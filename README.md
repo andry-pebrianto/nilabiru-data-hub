@@ -6,28 +6,25 @@ A self-hosted data infrastructure stack for the Nilabiru ecosystem, bundling ess
 
 ## Overview
 
-**Nilabiru Data Hub** provisions and manages a cohesive set of data infrastructure services — reverse proxy, FRP client, cache, relational databases, document store, message broker, object storage, file management, container management, and AI inference — all running in isolated Docker containers on a shared internal network. Deployments are fully automated via GitHub Actions on every push to `main`.
+**Nilabiru Data Hub** provisions and manages a cohesive set of data infrastructure services — reverse proxy, FRP client, cache, relational databases, document store, message broker, object storage, file management, and container management — all running in isolated Docker containers on a shared internal network. Deployments are fully automated via GitHub Actions on every push to `main`.
 
 ---
 
 ## Services
 
-| Service                          | Image                                         | Port(s)           | Description                                                                                                               |
-| -------------------------------- | --------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **nilabiru-nginx-proxy-manager** | `jc21/nginx-proxy-manager:2.15.1`             | `80`, `443`, `81` | Reverse proxy and SSL/TLS certificate management, with a web-based admin UI on port `81`                                  |
-| **nilabiru-frpc**                | `fatedier/frpc:v0.69.1`                       | `7400`            | FRP client that tunnels traffic through an FRP server; web dashboard available at port `7400`                             |
-| **nilabiru-redis**               | `redis:8.8-alpine`                            | `6379`            | In-memory cache and key-value store with password protection                                                              |
-| **nilabiru-postgres**            | `postgres:17-alpine`                          | `5432`            | Relational database with configurable user, password, and database name                                                   |
-| **nilabiru-mongodb**             | `mongo:8.0.11`                                | `27017`           | Document-oriented NoSQL database with root authentication                                                                 |
-| **nilabiru-rabbitmq**            | `rabbitmq:4.1-management-alpine`              | `5672`, `15672`   | Message broker with management UI available at port `15672`                                                               |
-| **nilabiru-rustfs**              | `rustfs/rustfs:latest`                        | `9000`, `9001`    | High-performance S3-compatible object storage (Apache 2.0); console available at port `9001`                              |
-| **nilabiru-nextcloud**           | `nextcloud:29-apache`                         | `8080`            | Self-hosted file management and cloud storage, backed by PostgreSQL and Redis, served behind the reverse proxy over HTTPS |
-| **nilabiru-portainer**           | `portainer/portainer-ce:2.42.0`               | `9443`, `8000`    | Web-based Docker management dashboard                                                                                     |
-| **nilabiru-ollama**              | `ollama/ollama:0.30.11`                       | `11434`           | Local AI model inference engine (CPU-only); models stored on SATA drive                                                   |
-| **nilabiru-open-webui**          | `ghcr.io/open-webui/open-webui:v0.9.6`        | `3000`            | Web-based chat UI for interacting with Ollama models                                                                      |
-| **nilabiru-searxng**             | `ghcr.io/searxng/searxng:2026.6.26-f8ffbf36f` | `8888`            | Self-hosted metasearch engine providing web search capability to Open WebUI                                               |
+| Service                          | Image                             | Port(s)           | Description                                                                                                               |
+| -------------------------------- | --------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **nilabiru-nginx-proxy-manager** | `jc21/nginx-proxy-manager:2.15.1` | `80`, `443`, `81` | Reverse proxy and SSL/TLS certificate management, with a web-based admin UI on port `81`                                  |
+| **nilabiru-frpc**                | `fatedier/frpc:v0.69.1`           | `7400`            | FRP client that tunnels traffic through an FRP server; web dashboard available at port `7400`                             |
+| **nilabiru-redis**               | `redis:8.8-alpine`                | `6379`            | In-memory cache and key-value store with password protection                                                              |
+| **nilabiru-postgres**            | `postgres:17-alpine`              | `5432`            | Relational database with configurable user, password, and database name                                                   |
+| **nilabiru-mongodb**             | `mongo:8.0.11`                    | `27017`           | Document-oriented NoSQL database with root authentication                                                                 |
+| **nilabiru-rabbitmq**            | `rabbitmq:4.1-management-alpine`  | `5672`, `15672`   | Message broker with management UI available at port `15672`                                                               |
+| **nilabiru-rustfs**              | `rustfs/rustfs:latest`            | `9000`, `9001`    | High-performance S3-compatible object storage (Apache 2.0); console available at port `9001`                              |
+| **nilabiru-nextcloud**           | `nextcloud:29-apache`             | `8080`            | Self-hosted file management and cloud storage, backed by PostgreSQL and Redis, served behind the reverse proxy over HTTPS |
+| **nilabiru-portainer**           | `portainer/portainer-ce:2.42.0`   | `9443`, `8000`    | Web-based Docker management dashboard                                                                                     |
 
-All services are connected through a shared bridge network named `nilabiru-data-hub`. With the exception of Nginx Proxy Manager's HTTP/HTTPS ports (`80`, `443`), which are exposed on all network interfaces to allow public traffic and SSL certificate issuance, every other port is bound to the Tailscale IP (`TAILSCALE_IP`) for secure private network access only.
+All services are connected through a shared bridge network named `nilabiru-data-hub`. With the exception of Nginx Proxy Manager's HTTP/HTTPS ports (`80`, `443`), which are exposed on all network interfaces to allow public traffic and SSL certificate issuance, every other port is bound to the Tailscale IP (`TAILSCALE_IP`) for secure private network access only — including the Nginx Proxy Manager admin UI (`81`), the frpc web dashboard (`7400`), and all other service ports.
 
 ---
 
@@ -35,7 +32,7 @@ All services are connected through a shared bridge network named `nilabiru-data-
 
 - Docker Engine `20.10+`
 - Docker Compose `v2+`
-- A server with a mounted SATA drive at `/sata-storage` (used by RustFS, Nextcloud, and Ollama)
+- A server with a mounted SATA drive at `/sata-storage` (used by RustFS and Nextcloud)
 - Tailscale installed and connected on the server and all client machines
 - Ports `80` and `443` open/forwarded on the host (used by Nginx Proxy Manager for reverse proxying and SSL certificate issuance)
 - A running FRP server reachable at `FRP_SERVER_ADDR` (used by the frpc service)
@@ -97,9 +94,6 @@ NEXTCLOUD_DB_NAME=nextcloud
 NEXTCLOUD_ADMIN_USER=your_nextcloud_admin_username
 NEXTCLOUD_ADMIN_PASSWORD=your_nextcloud_admin_password
 NEXTCLOUD_TRUSTED_DOMAINS=your_nextcloud_trusted_domain
-
-# Open WebUI
-WEBUI_SECRET_KEY=your_webui_secret_key
 ```
 
 > **Note:** Never commit `.env` to version control. It is already listed in `.gitignore`.
@@ -144,7 +138,6 @@ remotePort = 443
 ```bash
 mkdir -p /sata-storage/rustfs-data
 mkdir -p /sata-storage/nextcloud-files
-mkdir -p /sata-storage/ollama-models
 ```
 
 > **Note:** Unlike previous versions, Nginx Proxy Manager now uses Docker named volumes (`npm-data` and `npm-letsencrypt`) instead of bind mounts. No manual directory creation is needed for NPM.
@@ -157,21 +150,11 @@ docker compose up -d
 
 The Nextcloud database is created automatically on first startup via `init-db.sh`, which runs as part of the PostgreSQL initialization process.
 
-To verify all services are running:
+To verify all services are healthy:
 
 ```bash
 docker compose ps
 ```
-
-### 6. Pull AI models (optional)
-
-After the stack is running, pull your preferred model into Ollama:
-
-```bash
-docker exec -it nilabiru-ollama ollama pull qwen2.5:7b-instruct-q4_K_M
-```
-
-Models are stored persistently at `/sata-storage/ollama-models` and survive container recreation.
 
 ---
 
@@ -192,15 +175,12 @@ Most services are accessible only via the Tailscale IP of the server. The except
 | RustFS Console                 | `http://<TAILSCALE_IP>:9001`  |
 | Nextcloud                      | `http://<TAILSCALE_IP>:8080`  |
 | Portainer                      | `https://<TAILSCALE_IP>:9443` |
-| Ollama API                     | `http://<TAILSCALE_IP>:11434` |
-| Open WebUI                     | `http://<TAILSCALE_IP>:3000`  |
-| SearXNG                        | `http://<TAILSCALE_IP>:8888`  |
 
 ---
 
 ## Data Persistence
 
-All stateful services use Docker named volumes for reliable persistence across restarts and redeployments. RustFS, Nextcloud user files, and Ollama models additionally use host bind mounts pointing to the SATA drive for large-capacity storage.
+All stateful services use Docker named volumes for reliable persistence across restarts and redeployments. RustFS and Nextcloud user files additionally use host bind mounts pointing to the SATA drive for large-capacity storage.
 
 | Volume / Mount                  | Type         | Service                                              |
 | ------------------------------- | ------------ | ---------------------------------------------------- |
@@ -218,9 +198,6 @@ All stateful services use Docker named volumes for reliable persistence across r
 | `/sata-storage/nextcloud-files` | Bind mount   | Nextcloud (user files — requires SATA drive mounted) |
 | `/var/run/docker.sock`          | Bind mount   | Portainer (Docker socket access)                     |
 | `portainer-data`                | Named volume | Portainer                                            |
-| `/sata-storage/ollama-models`   | Bind mount   | Ollama (AI models — requires SATA drive mounted)     |
-| `open-webui-data`               | Named volume | Open WebUI (database & settings)                     |
-| `searxng-data`                  | Named volume | SearXNG (configuration)                              |
 
 > **Note:** The bind mounts pointing to `/sata-storage` depend on the SATA drive being mounted at that path. Ensure the drive is configured to auto-mount on boot via `/etc/fstab` to prevent data access failures after a server reboot.
 
@@ -236,9 +213,8 @@ This project uses GitHub Actions for continuous deployment, running on a **self-
 4. Validates the Compose configuration with `docker compose config`.
 5. Deploys/redeploys all services with `docker compose up -d --remove-orphans --build`.
 6. Removes the generated `.env` file from the runner (`rm -f .env`) — this cleanup step always runs, even if an earlier step fails, so secrets are never left on disk.
-7. Prunes unused Docker images with `docker image prune -f` to reclaim disk space.
 
-> **Note:** The workflow does not currently perform a post-deploy health check; it finishes as soon as `docker compose up -d` completes. Run `docker compose ps` on the server afterward to confirm every container is running.
+> **Note:** The workflow does not currently perform a post-deploy health check; it finishes as soon as `docker compose up -d` completes. Run `docker compose ps` on the server afterward to confirm every container is `running`/`healthy`.
 
 A self-hosted GitHub Actions runner must be configured on the target server for this workflow to run.
 
@@ -268,7 +244,6 @@ Because the `.env` file is generated entirely from secrets at deploy time, the f
 | `NEXTCLOUD_ADMIN_USER`      | Nextcloud                   |
 | `NEXTCLOUD_ADMIN_PASSWORD`  | Nextcloud                   |
 | `NEXTCLOUD_TRUSTED_DOMAINS` | Nextcloud                   |
-| `WEBUI_SECRET_KEY`          | Open WebUI                  |
 
 ---
 
