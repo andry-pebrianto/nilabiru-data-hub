@@ -105,7 +105,7 @@ services:
       - -s3.config=/etc/seaweedfs/s3config.json
       - -master.volumeSizeLimitMB=1000
       - -volume.max=0
-      - -ui.bind=0.0.0.0
+      - -filer
     ports:
       - "${TAILSCALE_IP}:9000:9000"
       - "${TAILSCALE_IP}:9001:9333"
