@@ -130,6 +130,9 @@ services:
       - NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS}
       - REDIS_HOST=nilabiru-redis
       - REDIS_HOST_PASSWORD=${REDIS_PASSWORD}
+      - NC_overwriteprotocol=https
+      - NC_overwritehost=nilabiru-nextcloud.andrypebrianto.com
+      - NC_trusted_proxies=nilabiru-nginx-proxy-manager
     volumes:
       - nextcloud-data:/var/www/html
       - /sata-storage/nextcloud-files:/var/www/html/data
