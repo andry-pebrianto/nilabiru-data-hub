@@ -166,6 +166,21 @@ services:
     networks:
       - nilabiru-data-hub
 
+  nilabiru-9router:
+    image: decolua/9router:latest
+    container_name: nilabiru-9router
+    restart: unless-stopped
+    ports:
+      - "${TAILSCALE_IP}:20128:20128"
+    environment:
+      - DATA_DIR=/app/data
+      - PORT=20128
+      - HOSTNAME=0.0.0.0
+    volumes:
+      - 9router-data:/app/data
+    networks:
+      - nilabiru-data-hub
+
 volumes:
   redis-data:
   postgres-data:
@@ -176,6 +191,7 @@ volumes:
   portainer-data:
   npm-data:
   npm-letsencrypt:
+  9router-data:
 
 networks:
   nilabiru-data-hub:
