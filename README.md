@@ -6,7 +6,7 @@ A self-hosted data infrastructure stack for the Nilabiru ecosystem, bundling ess
 
 ## Overview
 
-**Nilabiru Data Hub** provisions and manages a cohesive set of data infrastructure services — reverse proxy, FRP client, cache, relational databases, document store, message broker, object storage, file management, and container management — all running in isolated Docker containers on a shared internal network. Deployments are fully automated via GitHub Actions on every push to `main`.
+**Nilabiru Data Hub** provisions and manages a cohesive set of data infrastructure services — reverse proxy, FRP client, cache, relational databases, document store, message broker, object storage, file management, document conversion, and container management — all running in isolated Docker containers on a shared internal network. Deployments are fully automated via GitHub Actions on every push to `main`.
 
 ---
 
@@ -23,8 +23,9 @@ A self-hosted data infrastructure stack for the Nilabiru ecosystem, bundling ess
 | **nilabiru-rustfs**              | `rustfs/rustfs:latest`            | `9000`, `9001`    | High-performance S3-compatible object storage (Apache 2.0); console available at port `9001`                              |
 | **nilabiru-nextcloud**           | `nextcloud:29-apache`             | `8080`            | Self-hosted file management and cloud storage, backed by PostgreSQL and Redis, served behind the reverse proxy over HTTPS |
 | **nilabiru-portainer**           | `portainer/portainer-ce:2.42.0`   | `9443`, `8000`    | Web-based Docker management dashboard                                                                                     |
+| **nilabiru-gotenberg**           | `gotenberg/gotenberg:8`           | `3000`            | Stateless API for converting documents (HTML, Markdown, Office files, etc.) to PDF                                        |
 
-All services are connected through a shared bridge network named `nilabiru-data-hub`. With the exception of Nginx Proxy Manager's HTTP/HTTPS ports (`80`, `443`), which are exposed on all network interfaces to allow public traffic and SSL certificate issuance, every other port is bound to the Tailscale IP (`TAILSCALE_IP`) for secure private network access only — including the Nginx Proxy Manager admin UI (`81`), the frpc web dashboard (`7400`), and all other service ports.
+All services are connected through a shared bridge network named `nilabiru-data-hub`. With the exception of Nginx Proxy Manager's HTTP/HTTPS ports (`80`, `443`), which are exposed on all network interfaces to allow public traffic and SSL certificate issuance, every other port is bound to the Tailscale IP (`TAILSCALE_IP`) for secure private network access only — including the Nginx Proxy Manager admin UI (`81`), the frpc web dashboard (`7400`), the Gotenberg API (`3000`), and all other service ports.
 
 ---
 
@@ -99,6 +100,8 @@ NEXTCLOUD_TRUSTED_DOMAINS=your_nextcloud_trusted_domain
 > **Note:** Never commit `.env` to version control. It is already listed in `.gitignore`.
 
 > **Note:** This manual `.env` file is only needed for running `docker compose up -d` directly on the server. When deploying via the GitHub Actions workflow (see [CI/CD Deployment](#cicd-deployment)), the `.env` file is generated automatically on the runner from repository secrets — using the same variable names — and deleted again after each deploy.
+
+> **Note:** Gotenberg requires no environment variables — it runs with sensible defaults out of the box.
 
 ### 3. Prepare the frpc configuration
 
@@ -175,6 +178,7 @@ Most services are accessible only via the Tailscale IP of the server. The except
 | RustFS Console                 | `http://<TAILSCALE_IP>:9001`  |
 | Nextcloud                      | `http://<TAILSCALE_IP>:8080`  |
 | Portainer                      | `https://<TAILSCALE_IP>:9443` |
+| Gotenberg API                  | `http://<TAILSCALE_IP>:3000`  |
 
 ---
 
@@ -200,6 +204,8 @@ All stateful services use Docker named volumes for reliable persistence across r
 | `portainer-data`                | Named volume | Portainer                                            |
 
 > **Note:** The bind mounts pointing to `/sata-storage` depend on the SATA drive being mounted at that path. Ensure the drive is configured to auto-mount on boot via `/etc/fstab` to prevent data access failures after a server reboot.
+
+> **Note:** Gotenberg is fully stateless and requires no volumes or persistent storage.
 
 ---
 
@@ -244,6 +250,8 @@ Because the `.env` file is generated entirely from secrets at deploy time, the f
 | `NEXTCLOUD_ADMIN_USER`      | Nextcloud                   |
 | `NEXTCLOUD_ADMIN_PASSWORD`  | Nextcloud                   |
 | `NEXTCLOUD_TRUSTED_DOMAINS` | Nextcloud                   |
+
+> **Note:** Gotenberg does not require any secrets — no entry is needed for it in this table.
 
 ---
 

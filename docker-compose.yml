@@ -166,18 +166,15 @@ services:
     networks:
       - nilabiru-data-hub
 
-  nilabiru-9router:
-    image: decolua/9router:latest
-    container_name: nilabiru-9router
+  nilabiru-stirlingpdf:
+    image: stirlingtools/stirling-pdf:latest
+    container_name: nilabiru-stirlingpdf
     restart: unless-stopped
     ports:
-      - "${TAILSCALE_IP}:20128:20128"
-    environment:
-      - DATA_DIR=/app/data
-      - PORT=20128
-      - HOSTNAME=0.0.0.0
+      - "${TAILSCALE_IP}:8081:8080"
     volumes:
-      - 9router-data:/app/data
+      - stirlingpdf-config:/configs
+      - stirlingpdf-pipeline:/pipeline
     networks:
       - nilabiru-data-hub
 
@@ -191,7 +188,8 @@ volumes:
   portainer-data:
   npm-data:
   npm-letsencrypt:
-  9router-data:
+  stirlingpdf-config:
+  stirlingpdf-pipeline:
 
 networks:
   nilabiru-data-hub:
