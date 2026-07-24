@@ -14,6 +14,7 @@ A self-hosted data infrastructure stack for the Nilabiru ecosystem, bundling ess
 
 | Service                          | Image                             | Port(s)           | Description                                                                                                               |
 | -------------------------------- | --------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **nilabiru-portainer**           | `portainer/portainer-ce:2.42.0`   | `9443`, `8000`    | Web-based Docker management dashboard                                                                                     |
 | **nilabiru-nginx-proxy-manager** | `jc21/nginx-proxy-manager:2.15.1` | `80`, `443`, `81` | Reverse proxy and SSL/TLS certificate management, with a web-based admin UI on port `81`                                  |
 | **nilabiru-frpc**                | `fatedier/frpc:v0.69.1`           | `7400`            | FRP client that tunnels traffic through an FRP server; web dashboard available at port `7400`                             |
 | **nilabiru-redis**               | `redis:8.8-alpine`                | `6379`            | In-memory cache and key-value store with password protection                                                              |
@@ -22,7 +23,6 @@ A self-hosted data infrastructure stack for the Nilabiru ecosystem, bundling ess
 | **nilabiru-rabbitmq**            | `rabbitmq:4.1-management-alpine`  | `5672`, `15672`   | Message broker with management UI available at port `15672`                                                               |
 | **nilabiru-rustfs**              | `rustfs/rustfs:latest`            | `9000`, `9001`    | High-performance S3-compatible object storage (Apache 2.0); console available at port `9001`                              |
 | **nilabiru-nextcloud**           | `nextcloud:29-apache`             | `8080`            | Self-hosted file management and cloud storage, backed by PostgreSQL and Redis, served behind the reverse proxy over HTTPS |
-| **nilabiru-portainer**           | `portainer/portainer-ce:2.42.0`   | `9443`, `8000`    | Web-based Docker management dashboard                                                                                     |
 | **nilabiru-gotenberg**           | `gotenberg/gotenberg:8`           | `3000`            | Stateless API for converting documents (HTML, Markdown, Office files, etc.) to PDF                                        |
 
 All services are connected through a shared bridge network named `nilabiru-data-hub`. With the exception of Nginx Proxy Manager's HTTP/HTTPS ports (`80`, `443`), which are exposed on all network interfaces to allow public traffic and SSL certificate issuance, every other port is bound to the Tailscale IP (`TAILSCALE_IP`) for secure private network access only — including the Nginx Proxy Manager admin UI (`81`), the frpc web dashboard (`7400`), the Gotenberg API (`3000`), and all other service ports.
@@ -167,6 +167,7 @@ Most services are accessible only via the Tailscale IP of the server. The except
 
 | Service                        | URL / Address                 |
 | ------------------------------ | ----------------------------- |
+| Portainer                      | `https://<TAILSCALE_IP>:9443` |
 | Nginx Proxy Manager (Admin UI) | `http://<TAILSCALE_IP>:81`    |
 | frpc Web Dashboard             | `http://<TAILSCALE_IP>:7400`  |
 | Redis                          | `<TAILSCALE_IP>:6379`         |
@@ -177,7 +178,6 @@ Most services are accessible only via the Tailscale IP of the server. The except
 | RustFS API                     | `http://<TAILSCALE_IP>:9000`  |
 | RustFS Console                 | `http://<TAILSCALE_IP>:9001`  |
 | Nextcloud                      | `http://<TAILSCALE_IP>:8080`  |
-| Portainer                      | `https://<TAILSCALE_IP>:9443` |
 | Gotenberg API                  | `http://<TAILSCALE_IP>:3000`  |
 
 ---
@@ -188,6 +188,8 @@ All stateful services use Docker named volumes for reliable persistence across r
 
 | Volume / Mount                  | Type         | Service                                              |
 | ------------------------------- | ------------ | ---------------------------------------------------- |
+| `/var/run/docker.sock`          | Bind mount   | Portainer (Docker socket access)                     |
+| `portainer-data`                | Named volume | Portainer                                            |
 | `npm-data`                      | Named volume | Nginx Proxy Manager (config & database)              |
 | `npm-letsencrypt`               | Named volume | Nginx Proxy Manager (SSL certificates)               |
 | `./frpc.toml`                   | Bind mount   | frpc (read-only config)                              |
@@ -200,8 +202,6 @@ All stateful services use Docker named volumes for reliable persistence across r
 | `rustfs-logs`                   | Named volume | RustFS (logs)                                        |
 | `nextcloud-data`                | Named volume | Nextcloud (app files)                                |
 | `/sata-storage/nextcloud-files` | Bind mount   | Nextcloud (user files — requires SATA drive mounted) |
-| `/var/run/docker.sock`          | Bind mount   | Portainer (Docker socket access)                     |
-| `portainer-data`                | Named volume | Portainer                                            |
 
 > **Note:** The bind mounts pointing to `/sata-storage` depend on the SATA drive being mounted at that path. Ensure the drive is configured to auto-mount on boot via `/etc/fstab` to prevent data access failures after a server reboot.
 

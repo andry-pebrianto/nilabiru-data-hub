@@ -1,4 +1,17 @@
 services:
+  nilabiru-portainer:
+    image: portainer/portainer-ce:2.42.0
+    container_name: nilabiru-portainer
+    restart: unless-stopped
+    ports:
+      - "${TAILSCALE_IP}:9443:9443"
+      - "${TAILSCALE_IP}:8000:8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer-data:/data
+    networks:
+      - nilabiru-data-hub
+
   nilabiru-nginx-proxy-manager:
     image: "jc21/nginx-proxy-manager:2.15.1"
     container_name: nilabiru-nginx-proxy-manager
@@ -144,19 +157,6 @@ services:
       nilabiru-redis:
         condition: service_started
 
-  nilabiru-portainer:
-    image: portainer/portainer-ce:2.42.0
-    container_name: nilabiru-portainer
-    restart: unless-stopped
-    ports:
-      - "${TAILSCALE_IP}:9443:9443"
-      - "${TAILSCALE_IP}:8000:8000"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - portainer-data:/data
-    networks:
-      - nilabiru-data-hub
-
   nilabiru-gotenberg:
     image: gotenberg/gotenberg:8
     container_name: nilabiru-gotenberg
@@ -166,30 +166,16 @@ services:
     networks:
       - nilabiru-data-hub
 
-  nilabiru-stirlingpdf:
-    image: stirlingtools/stirling-pdf:latest
-    container_name: nilabiru-stirlingpdf
-    restart: unless-stopped
-    ports:
-      - "${TAILSCALE_IP}:8081:8080"
-    volumes:
-      - stirlingpdf-config:/configs
-      - stirlingpdf-pipeline:/pipeline
-    networks:
-      - nilabiru-data-hub
-
 volumes:
+  portainer-data:
   redis-data:
   postgres-data:
   mongodb-data:
   rabbitmq-data:
   rustfs-logs:
   nextcloud-data:
-  portainer-data:
   npm-data:
   npm-letsencrypt:
-  stirlingpdf-config:
-  stirlingpdf-pipeline:
 
 networks:
   nilabiru-data-hub:
