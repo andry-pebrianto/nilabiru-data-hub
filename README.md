@@ -6,26 +6,32 @@ A self-hosted data infrastructure stack for the Nilabiru ecosystem, bundling ess
 
 ## Overview
 
-**Nilabiru Data Hub** provisions and manages a cohesive set of data infrastructure services — reverse proxy, FRP client, cache, relational databases, document store, message broker, object storage, file management, document conversion, and container management — all running in isolated Docker containers on a shared internal network. Deployments are fully automated via GitHub Actions on every push to `main`.
+**Nilabiru Data Hub** provisions and manages a cohesive set of data infrastructure services — reverse proxy, FRP client, cache, relational databases, document store, message broker, object storage, file management, document conversion, container management, and observability (uptime monitoring, metrics collection, and dashboards) — all running in isolated Docker containers on a shared internal network. Deployments are fully automated via GitHub Actions on every push to `main`.
 
 ---
 
 ## Services
 
-| Service                          | Image                             | Port(s)           | Description                                                                                                               |
-| -------------------------------- | --------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **nilabiru-portainer**           | `portainer/portainer-ce:2.42.0`   | `9443`, `8000`    | Web-based Docker management dashboard                                                                                     |
-| **nilabiru-nginx-proxy-manager** | `jc21/nginx-proxy-manager:2.15.1` | `80`, `443`, `81` | Reverse proxy and SSL/TLS certificate management, with a web-based admin UI on port `81`                                  |
-| **nilabiru-frpc**                | `fatedier/frpc:v0.69.1`           | `7400`            | FRP client that tunnels traffic through an FRP server; web dashboard available at port `7400`                             |
-| **nilabiru-redis**               | `redis:8.8-alpine`                | `6379`            | In-memory cache and key-value store with password protection                                                              |
-| **nilabiru-postgres**            | `postgres:17-alpine`              | `5432`            | Relational database with configurable user, password, and database name                                                   |
-| **nilabiru-mongodb**             | `mongo:8.0.11`                    | `27017`           | Document-oriented NoSQL database with root authentication                                                                 |
-| **nilabiru-rabbitmq**            | `rabbitmq:4.1-management-alpine`  | `5672`, `15672`   | Message broker with management UI available at port `15672`                                                               |
-| **nilabiru-rustfs**              | `rustfs/rustfs:latest`            | `9000`, `9001`    | High-performance S3-compatible object storage (Apache 2.0); console available at port `9001`                              |
-| **nilabiru-nextcloud**           | `nextcloud:29-apache`             | `8080`            | Self-hosted file management and cloud storage, backed by PostgreSQL and Redis, served behind the reverse proxy over HTTPS |
-| **nilabiru-gotenberg**           | `gotenberg/gotenberg:8`           | `3000`            | Stateless API for converting documents (HTML, Markdown, Office files, etc.) to PDF                                        |
+| Service                          | Image                             | Port(s)                     | Description                                                                                                               |
+| -------------------------------- | --------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **nilabiru-portainer**           | `portainer/portainer-ce:2.42.0`   | `9443`, `8000`              | Web-based Docker management dashboard                                                                                     |
+| **nilabiru-nginx-proxy-manager** | `jc21/nginx-proxy-manager:2.15.1` | `80`, `443`, `81`           | Reverse proxy and SSL/TLS certificate management, with a web-based admin UI on port `81`                                  |
+| **nilabiru-frpc**                | `fatedier/frpc:v0.69.1`           | `7400`                      | FRP client that tunnels traffic through an FRP server; web dashboard available at port `7400`                             |
+| **nilabiru-redis**               | `redis:8.8-alpine`                | `6379`                      | In-memory cache and key-value store with password protection                                                              |
+| **nilabiru-postgres**            | `postgres:17-alpine`              | `5432`                      | Relational database with configurable user, password, and database name                                                   |
+| **nilabiru-mongodb**             | `mongo:8.0.11`                    | `27017`                     | Document-oriented NoSQL database with root authentication                                                                 |
+| **nilabiru-rabbitmq**            | `rabbitmq:4.1-management-alpine`  | `5672`, `15672`             | Message broker with management UI available at port `15672`                                                               |
+| **nilabiru-rustfs**              | `rustfs/rustfs:latest`            | `9000`, `9001`              | High-performance S3-compatible object storage (Apache 2.0); console available at port `9001`                              |
+| **nilabiru-nextcloud**           | `nextcloud:29-apache`             | `8080`                      | Self-hosted file management and cloud storage, backed by PostgreSQL and Redis, served behind the reverse proxy over HTTPS |
+| **nilabiru-gotenberg**           | `gotenberg/gotenberg:8`           | `3000`                      | Stateless API for converting documents (HTML, Markdown, Office files, etc.) to PDF                                        |
+| **nilabiru-uptime-kuma**         | `louislam/uptime-kuma:1`          | `3001`                      | Self-hosted uptime/status monitoring dashboard for tracking service availability                                          |
+| **nilabiru-node-exporter**       | `prom/node-exporter:latest`       | _(internal only)_           | Exposes host-level system metrics (CPU, memory, disk, network) for Prometheus to scrape; not published on any port        |
+| **nilabiru-prometheus**          | `prom/prometheus:latest`          | `9090`                      | Metrics collection and time-series database; scrapes Node Exporter and other targets defined in `prometheus.yml`          |
+| **nilabiru-grafana**             | `grafana/grafana:latest`          | `3002` (→ container `3000`) | Dashboarding and visualization for metrics stored in Prometheus                                                           |
 
-All services are connected through a shared bridge network named `nilabiru-data-hub`. With the exception of Nginx Proxy Manager's HTTP/HTTPS ports (`80`, `443`), which are exposed on all network interfaces to allow public traffic and SSL certificate issuance, every other port is bound to the Tailscale IP (`TAILSCALE_IP`) for secure private network access only — including the Nginx Proxy Manager admin UI (`81`), the frpc web dashboard (`7400`), the Gotenberg API (`3000`), and all other service ports.
+All services are connected through a shared bridge network named `nilabiru-data-hub`. With the exception of Nginx Proxy Manager's HTTP/HTTPS ports (`80`, `443`), which are exposed on all network interfaces to allow public traffic and SSL certificate issuance, every other published port is bound to the Tailscale IP (`TAILSCALE_IP`) for secure private network access only — including the Nginx Proxy Manager admin UI (`81`), the frpc web dashboard (`7400`), the Gotenberg API (`3000`), Uptime Kuma (`3001`), Prometheus (`9090`), Grafana (`3002`), and all other service ports.
+
+> **Note:** Node Exporter is the one exception — it publishes no ports at all (Tailscale-bound or otherwise). It reads host metrics via read-only bind mounts (`/proc`, `/sys`, `/`) and is reachable only internally, over the `nilabiru-data-hub` network, so Prometheus can scrape it.
 
 ---
 
@@ -101,7 +107,7 @@ NEXTCLOUD_TRUSTED_DOMAINS=your_nextcloud_trusted_domain
 
 > **Note:** This manual `.env` file is only needed for running `docker compose up -d` directly on the server. When deploying via the GitHub Actions workflow (see [CI/CD Deployment](#cicd-deployment)), the `.env` file is generated automatically on the runner from repository secrets — using the same variable names — and deleted again after each deploy.
 
-> **Note:** Gotenberg requires no environment variables — it runs with sensible defaults out of the box.
+> **Note:** Gotenberg, Uptime Kuma, Node Exporter, Prometheus, and Grafana require no environment variables — they all run with sensible defaults out of the box. Grafana ships with the default `admin` / `admin` login; change this on first sign-in.
 
 ### 3. Prepare the frpc configuration
 
@@ -136,7 +142,23 @@ localPort = 443
 remotePort = 443
 ```
 
-### 4. Prepare storage directories
+### 4. Prepare the Prometheus configuration
+
+Ensure `prometheus.yml` exists in the repository root — it's mounted read-only into the container and defines Prometheus's scrape targets, at minimum Node Exporter and itself:
+
+```yaml
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "node"
+    static_configs:
+      - targets: ["nilabiru-node-exporter:9100"]
+```
+
+> **Note:** Container-to-container targets use the Docker service name (e.g. `nilabiru-node-exporter:9100`) since Prometheus reaches them over the internal `nilabiru-data-hub` network, not via Tailscale.
+
+### 5. Prepare storage directories
 
 ```bash
 mkdir -p /sata-storage/rustfs-data
@@ -145,7 +167,7 @@ mkdir -p /sata-storage/nextcloud-files
 
 > **Note:** Unlike previous versions, Nginx Proxy Manager now uses Docker named volumes (`npm-data` and `npm-letsencrypt`) instead of bind mounts. No manual directory creation is needed for NPM.
 
-### 5. Start the stack
+### 6. Start the stack
 
 ```bash
 docker compose up -d
@@ -179,6 +201,11 @@ Most services are accessible only via the Tailscale IP of the server. The except
 | RustFS Console                 | `http://<TAILSCALE_IP>:9001`  |
 | Nextcloud                      | `http://<TAILSCALE_IP>:8080`  |
 | Gotenberg API                  | `http://<TAILSCALE_IP>:3000`  |
+| Uptime Kuma                    | `http://<TAILSCALE_IP>:3001`  |
+| Prometheus                     | `http://<TAILSCALE_IP>:9090`  |
+| Grafana                        | `http://<TAILSCALE_IP>:3002`  |
+
+> **Note:** Node Exporter has no reachable URL — it isn't published on any port and exists solely to be scraped by Prometheus over the internal Docker network.
 
 ---
 
@@ -186,22 +213,27 @@ Most services are accessible only via the Tailscale IP of the server. The except
 
 All stateful services use Docker named volumes for reliable persistence across restarts and redeployments. RustFS and Nextcloud user files additionally use host bind mounts pointing to the SATA drive for large-capacity storage.
 
-| Volume / Mount                  | Type         | Service                                              |
-| ------------------------------- | ------------ | ---------------------------------------------------- |
-| `/var/run/docker.sock`          | Bind mount   | Portainer (Docker socket access)                     |
-| `portainer-data`                | Named volume | Portainer                                            |
-| `npm-data`                      | Named volume | Nginx Proxy Manager (config & database)              |
-| `npm-letsencrypt`               | Named volume | Nginx Proxy Manager (SSL certificates)               |
-| `./frpc.toml`                   | Bind mount   | frpc (read-only config)                              |
-| `postgres-data`                 | Named volume | PostgreSQL                                           |
-| `./init-db.sh`                  | Bind mount   | PostgreSQL (initialization script)                   |
-| `redis-data`                    | Named volume | Redis                                                |
-| `mongodb-data`                  | Named volume | MongoDB                                              |
-| `rabbitmq-data`                 | Named volume | RabbitMQ                                             |
-| `/sata-storage/rustfs-data`     | Bind mount   | RustFS (data — requires SATA drive mounted)          |
-| `rustfs-logs`                   | Named volume | RustFS (logs)                                        |
-| `nextcloud-data`                | Named volume | Nextcloud (app files)                                |
-| `/sata-storage/nextcloud-files` | Bind mount   | Nextcloud (user files — requires SATA drive mounted) |
+| Volume / Mount                                    | Type                   | Service                                              |
+| ------------------------------------------------- | ---------------------- | ---------------------------------------------------- |
+| `/var/run/docker.sock`                            | Bind mount             | Portainer (Docker socket access)                     |
+| `portainer-data`                                  | Named volume           | Portainer                                            |
+| `npm-data`                                        | Named volume           | Nginx Proxy Manager (config & database)              |
+| `npm-letsencrypt`                                 | Named volume           | Nginx Proxy Manager (SSL certificates)               |
+| `./frpc.toml`                                     | Bind mount             | frpc (read-only config)                              |
+| `postgres-data`                                   | Named volume           | PostgreSQL                                           |
+| `./init-db.sh`                                    | Bind mount             | PostgreSQL (initialization script)                   |
+| `redis-data`                                      | Named volume           | Redis                                                |
+| `mongodb-data`                                    | Named volume           | MongoDB                                              |
+| `rabbitmq-data`                                   | Named volume           | RabbitMQ                                             |
+| `/sata-storage/rustfs-data`                       | Bind mount             | RustFS (data — requires SATA drive mounted)          |
+| `rustfs-logs`                                     | Named volume           | RustFS (logs)                                        |
+| `nextcloud-data`                                  | Named volume           | Nextcloud (app files)                                |
+| `/sata-storage/nextcloud-files`                   | Bind mount             | Nextcloud (user files — requires SATA drive mounted) |
+| `uptime-kuma-data`                                | Named volume           | Uptime Kuma                                          |
+| `/proc:/host/proc`, `/sys:/host/sys`, `/:/rootfs` | Bind mount (read-only) | Node Exporter (host metrics access)                  |
+| `./prometheus.yml`                                | Bind mount             | Prometheus (read-only config)                        |
+| `prometheus-data`                                 | Named volume           | Prometheus                                           |
+| `grafana-data`                                    | Named volume           | Grafana                                              |
 
 > **Note:** The bind mounts pointing to `/sata-storage` depend on the SATA drive being mounted at that path. Ensure the drive is configured to auto-mount on boot via `/etc/fstab` to prevent data access failures after a server reboot.
 
@@ -251,11 +283,11 @@ Because the `.env` file is generated entirely from secrets at deploy time, the f
 | `NEXTCLOUD_ADMIN_PASSWORD`  | Nextcloud                   |
 | `NEXTCLOUD_TRUSTED_DOMAINS` | Nextcloud                   |
 
-> **Note:** Gotenberg does not require any secrets — no entry is needed for it in this table.
+> **Note:** Gotenberg, Uptime Kuma, Node Exporter, Prometheus, and Grafana do not require any secrets or environment variables — no entries are needed for them in this table.
 
 ---
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).  
+This project is licensed under the [MIT License](LICENSE).
 Copyright © 2026 Andry Pebrianto
