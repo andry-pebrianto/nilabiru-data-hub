@@ -166,6 +166,18 @@ services:
     networks:
       - nilabiru-data-hub
 
+  nilabiru-libretranslate:
+    image: libretranslate/libretranslate:latest
+    container_name: nilabiru-libretranslate
+    restart: unless-stopped
+    ports:
+      - "${TAILSCALE_IP}:5000:5000"
+    command: ["--load-only", "id,en"]
+    volumes:
+      - libretranslate-data:/home/libretranslate/.local
+    networks:
+      - nilabiru-data-hub
+
   nilabiru-uptime-kuma:
     image: louislam/uptime-kuma:1
     container_name: nilabiru-uptime-kuma
@@ -225,6 +237,7 @@ volumes:
   nextcloud-data:
   npm-data:
   npm-letsencrypt:
+  libretranslate-data:
   uptime-kuma-data:
   prometheus-data:
   grafana-data:
