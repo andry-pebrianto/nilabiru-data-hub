@@ -69,6 +69,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
       - NEXTCLOUD_DB_NAME=${NEXTCLOUD_DB_NAME}
+      - GITEA_DB_NAME=${GITEA_DB_NAME:-gitea}
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
@@ -227,6 +228,33 @@ services:
     networks:
       - nilabiru-data-hub
 
+  nilabiru-gitea:
+    image: gitea/gitea:latest
+    container_name: nilabiru-gitea
+    restart: unless-stopped
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=nilabiru-postgres:5432
+      - GITEA__database__NAME=${GITEA_DB_NAME:-gitea}
+      - GITEA__database__USER=${POSTGRES_USER}
+      - GITEA__database__PASSWD=${POSTGRES_PASSWORD}
+      - GITEA__server__DOMAIN=git.andrypebrianto.com
+      - GITEA__server__ROOT_URL=https://git.andrypebrianto.com/
+    ports:
+      - "${TAILSCALE_IP}:3030:3000"
+      - "${TAILSCALE_IP}:2222:22"
+    volumes:
+      - gitea-data:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - nilabiru-data-hub
+    depends_on:
+      nilabiru-postgres:
+        condition: service_started
+
 volumes:
   portainer-data:
   redis-data:
@@ -241,6 +269,7 @@ volumes:
   uptime-kuma-data:
   prometheus-data:
   grafana-data:
+  gitea-data:
 
 networks:
   nilabiru-data-hub:
