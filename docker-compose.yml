@@ -222,7 +222,7 @@ services:
     container_name: nilabiru-grafana
     restart: unless-stopped
     ports:
-      - "${TAILSCALE_IP}:3002:3000"
+      - "${TAILSCALE_IP}:3002:3000"    
     volumes:
       - grafana-data:/var/lib/grafana
     networks:
